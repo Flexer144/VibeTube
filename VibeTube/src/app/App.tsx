@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
 import Home from "../pages/Home/Home";
+import Upload from "../pages/Upload/Upload";
 import { useAuth } from "./providers/AuthProvider";
 import type { ReactNode } from "react";
 
@@ -25,6 +26,7 @@ export default function App() {
             </Protected>
           }
         />
+        <Route path="/upload" element={<Upload />} />
       </Routes>
     </BrowserRouter>
   );

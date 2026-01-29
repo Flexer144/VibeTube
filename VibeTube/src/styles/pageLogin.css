@@ -125,6 +125,9 @@
 
   transition: transform 0.15s ease, box-shadow 0.15s ease, background .5s, color .5s;
 }
+.auth-button:hover{
+  background: rgb(228, 228, 228);
+}
 /* Стили для заблокированной кнопки */
 .auth-button:disabled {
   background: none;
