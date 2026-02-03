@@ -1,0 +1,261 @@
+/* pageUpload.css */
+:root {
+  --pu-bg: #0b0909;
+  --pu-card-bg: #18181b;
+  --pu-border: #27272a;
+  --pu-primary: #8324ff; /* Синий акцент */
+  --pu-primary-hover: #7517f0;
+  --pu-text: #d8d8d8;
+  --pu-text-muted: #cccccc;
+  --pu-radius: 8px;
+}
+
+.upload-container {
+  max-width: 600px;
+  margin: 40px auto;
+  color: var(--pu-text);
+  font-family: sans-serif;
+}
+
+.upload-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 30px;
+}
+
+/* --- STEPPER (Шапка с шагами) --- */
+.stepper-wrapper {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 40px;
+}
+
+.stepper-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  height: 2px;
+  background-color: var(--pu-border);
+  z-index: 0;
+}
+
+.step-item {
+  position: relative;
+  z-index: 1;
+  background-color: var(--pu-bg);
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--pu-card-bg);
+  border: 2px solid var(--pu-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  color: var(--pu-text-muted);
+}
+
+.step-item.active .step-circle {
+  border-color: var(--pu-primary);
+  color: var(--pu-primary);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.step-item.completed .step-circle {
+  background-color: var(--pu-primary);
+  border-color: var(--pu-primary);
+  color: white;
+}
+
+.step-label {
+  font-size: 12px;
+  color: var(--pu-text-muted);
+  font-weight: 500;
+}
+
+.step-item.active .step-label {
+  color: var(--pu-text);
+}
+
+/* --- FORM CONTENT --- */
+.step-content {
+  background-color: var(--pu-bg);
+  border: 1px solid var(--pu-border);
+  border-radius: var(--pu-radius);
+  padding: 24px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Inputs styling */
+.pu-input, .pu-textarea {
+  width: 100%;
+  background-color: var(--pu-bg);
+  border: 1px solid var(--pu-border);
+  border-radius: var(--pu-radius);
+  padding: 10px 12px;
+  color: var(--pu-text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.pu-input:focus, .pu-textarea:focus {
+  border-color: var(--pu-primary);
+}
+
+.pu-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.pu-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pu-text);
+}
+
+/* --- DROPZONE (Загрузка файлов) --- */
+.dropzone {
+  border: 2px dashed var(--pu-border);
+  border-radius: var(--pu-radius);
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: rgba(255, 255, 255, 0.02);
+  height: 100%;
+  min-height: 200px;
+}
+
+.dropzone:hover {
+  border-color: var(--pu-primary);
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.dropzone-icon {
+  color: var(--pu-text-muted);
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.dropzone:hover .dropzone-icon {
+  color: var(--pu-primary);
+}
+
+.dropzone-text {
+  font-size: 14px;
+  color: var(--pu-text-muted);
+}
+
+.dropzone-text strong {
+  color: var(--pu-primary);
+  font-weight: 500;
+}
+
+.file-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-name {
+  font-size: 14px;
+  color: var(--pu-text);
+  background: var(--pu-card-bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* --- FOOTER (Кнопки) --- */
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--pu-radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--pu-border);
+  color: var(--pu-text);
+}
+.btn-secondary:hover {background-color: var(--pu-border);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--pu-primary);
+  color: white;
+}
+.btn-primary:hover {
+  background-color: var(--pu-primary-hover);
+}
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* --- PROGRESS BAR --- */
+.progress-container {
+  margin-top: 20px;
+  text-align: center;
+}
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: var(--pu-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--pu-primary);
+  transition: width 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
