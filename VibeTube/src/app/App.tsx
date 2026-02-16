@@ -26,7 +26,14 @@ export default function App() {
             </Protected>
           }
         />
-        <Route path="/upload" element={<Upload />} />
+        <Route
+          path="/upload"
+          element={
+            <Protected>
+              <Upload />
+            </Protected>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

@@ -1,19 +1,19 @@
 /* GenreSelector.css */
 :root {
-  --gs-bg: #09090b;       /* Очень темный фон */
+  --gs-bg: #09090bb6;       /* Очень темный фон */
   --gs-border: #27272a;   /* Цвет рамок */
-  --gs-hover: #27272a;    /* Цвет при наведении */
+  --gs-hover: #27272ac2;    /* Цвет при наведении */
   --gs-text: #e4e4e7;     /* Основной текст */
   --gs-muted: #a1a1aa;    /* Серый текст */
   --gs-primary: #3b82f6;  /* Цвет галочки (синий) */
   --gs-radius: 8px;       /* Закругление углов */
+  --pu-primary: #8324ff;
 }
 
 /* Контейнер всего компонента */
 .gs-container {
   position: relative;
   width: 100%;
-  max-width: 400px; /* Можно убрать, если нужна ширина на весь экран */
   font-family: sans-serif;
   font-size: 14px;
 }
@@ -21,8 +21,8 @@
 /* Основное поле ввода (триггер) */
 .gs-trigger {
   min-height: 40px;
-  background-color: var(--gs-bg);
-  border: 1px solid var(--gs-border);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--gs-radius);
   padding: 4px 8px;
   display: flex;
@@ -33,7 +33,7 @@
 }
 
 .gs-trigger:hover {
-  border-color: #3f3f46;
+  border-color: var(--pu-primary);
 }
 
 /* Область с выбранными тегами */
@@ -52,8 +52,8 @@
 
 /* Отдельный тег (Badge) */
 .gs-tag {
-  background-color: #18181b; /* Чуть светлее фона */
-  border: 1px solid var(--gs-border);
+  background-color: #24242441; /* Чуть светлее фона */
+  border: 1px solid #818181d0;
   border-radius: 4px;
   padding: 2px 6px;
   display: flex;
@@ -141,9 +141,6 @@
   background-color: var(--gs-hover);
 }
 
-.gs-option.selected {
-  /* Можно выделить выбранный элемент, если нужно */
-}
 
 /* Галочка выбранного элемента */
 .gs-check-icon {

@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { useNavigate } from "react-router-dom";
-import '../../styles/pageUpload.css';
+import '../../pages/Upload/Style/pageUpload.css';
 import GenreSelector from "./ComponentsUpload/GenreSelector";
+import BgLogin from "../../assets/background/output4.mp4";
+
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -69,41 +71,6 @@ export default function Upload() {
       setCurrentStep((prev) => prev - 1);
     }
   };
-
-  // ================= ЗАГРУЗКА С ПРОГРЕССОМ (Исправлено) =================
-const uploadWithProgress = (file: File, path: string, bucket: string) => {
-  return new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        setProgress(percent);
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Ошибка: ${xhr.status}`));
-    };
-    xhr.onerror = () => reject(new Error("Сетевая ошибка"));
-
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
-
-    xhr.open("POST", url);
-
-    xhr.setRequestHeader(
-      "Authorization",
-      `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-    );
-
-    // Возвращаем FormData, как было в твоем рабочем коде
-    const formData = new FormData();
-    formData.append("file", file);
-
-    xhr.send(formData);
-  });
-};
 
 // ================= ОСНОВНАЯ ЗАГРУЗКА =================
   const handleUpload = async () => {
@@ -309,50 +276,58 @@ const uploadWithProgress = (file: File, path: string, bucket: string) => {
   };
 
   return (
-    <div className="upload-container">
-      <h2 className="upload-title">Новое видео</h2>
+    <>
+      <video className="auth-video" autoPlay muted loop playsInline>
+        <source src={BgLogin} type="video/mp4" />
+      </video>
 
-      {/* --- Stepper Header --- */}
-      <div className="stepper-wrapper">
-        {[1, 2, 3].map((step) => (
-          <div 
-            key={step} 
-            className={`step-item ${currentStep === step ? 'active' : ''} ${step < currentStep ? 'completed' : ''}`}
-          >
-            <div className="step-circle">
-              {step < currentStep ? <Check size={18} /> : step}
+      <div className="auth-overlay" />
+
+      <div className="upload-card">
+        <h2 className="upload-title">Новое видео</h2>
+
+        {/* --- Stepper Header --- */}
+        <div className="stepper-wrapper">
+          {[1, 2, 3].map((step) => (
+            <div 
+              key={step} 
+              className={`step-item ${currentStep === step ? 'active' : ''} ${step < currentStep ? 'completed' : ''}`}
+            >
+              <div className="step-circle">
+                {step < currentStep ? <Check size={18} /> : step}
+              </div>
+              <span className="step-label">
+                {step === 1 ? 'Детали' : step === 2 ? 'Обложка' : 'Видео'}
+              </span>
             </div>
-            <span className="step-label">
-              {step === 1 ? 'Детали' : step === 2 ? 'Обложка' : 'Видео'}
-            </span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* --- Main Content --- */}
-      <div className="step-content">
-        {renderStepContent()}
-      </div>
+        {/* --- Main Content --- */}
+        <div className="step-content">
+          {renderStepContent()}
+        </div>
 
-      {/* --- Footer Actions --- */}
-      <div className="step-actions">
-        <button 
-          className="btn btn-secondary"
-          onClick={handleBack}
-          disabled={currentStep === 1 || loading}
-        >
-          <ChevronLeft size={16} /> Назад
-        </button>
+        {/* --- Footer Actions --- */}
+        <div className="step-actions">
+          <button 
+            className="btn btn-secondary"
+            onClick={handleBack}
+            disabled={currentStep === 1 || loading}
+          >
+            <ChevronLeft size={16} /> Назад
+          </button>
 
-        <button 
-          className="btn btn-primary"
-          onClick={handleNext}
-          disabled={loading || (currentStep === 3 && !videoFile)}
-        >
-          {loading ? 'Загружаем...' : currentStep === 3 ? 'Опубликовать' : 'Далее'}
-          {!loading && currentStep !== 3 && <ChevronRight size={16} />}
-        </button>
+          <button 
+            className="btn btn-primary"
+            onClick={handleNext}
+            disabled={loading || (currentStep === 3 && !videoFile)}
+          >
+            {loading ? 'Загружаем...' : currentStep === 3 ? 'Опубликовать' : 'Далее'}
+            {!loading && currentStep !== 3 && <ChevronRight size={16} />}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
