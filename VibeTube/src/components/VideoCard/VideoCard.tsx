@@ -7,11 +7,12 @@ type VideoCardProps = {
 
 export default function VideoCard({ video }: VideoCardProps) {
   const navigate = useNavigate();
+  
 
   return (
     <div
       className="video-card"
-      onClick={() => navigate(`/watch/${video.id}`)}
+      onClick={() => navigate(`/video/${video.id}`)}
     >
       <img
         src={video.thumbnail_url}

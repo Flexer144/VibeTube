@@ -9,13 +9,13 @@ import '../../styles/HomeStyle.css';
 export default function Home() {
   const { user, profile, loading } = useAuth();
   const [videos, setVideos] = useState<any[]>([]);
-  const [loadingVideo, setLoadingVideo] = useState(true);
+  // const [loadingVideo, setLoadingVideo] = useState(true); ----- прогрузка видео, потом сделать скелетон
   const [genres, setGenres] = useState<any[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const fetchVideos = async (genreId?: number) => {
-    setLoadingVideo(true);
+    // setLoadingVideo(true);   ----- прогрузка видео, потом сделать скелетон
 
     let query = supabase
       .from("videos")
@@ -48,7 +48,7 @@ export default function Home() {
     if (error) console.error(error);
 
     setVideos(data || []);
-    setLoadingVideo(false);
+    // setLoadingVideo(false); ----- прогрузка видео, потом сделать скелетон
   };
 
 

@@ -1,0 +1,15 @@
+.watch-page {
+  max-width: 900px;
+  margin: auto;
+}
+
+.video-info {
+  margin-top: 20px;
+}
+
+.genres span {
+  margin-right: 8px;
+  background: #eee;
+  padding: 4px 8px;
+  border-radius: 6px;
+}

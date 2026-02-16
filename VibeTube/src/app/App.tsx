@@ -3,6 +3,7 @@ import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
 import Home from "../pages/Home/Home";
 import Upload from "../pages/Upload/Upload";
+import Watch from "../pages/Watch/Watch";
 import { useAuth } from "./providers/AuthProvider";
 import type { ReactNode } from "react";
 
@@ -31,6 +32,14 @@ export default function App() {
           element={
             <Protected>
               <Upload />
+            </Protected>
+          }
+        />
+        <Route
+          path="/video/:id"
+          element={
+            <Protected>
+              <Watch />
             </Protected>
           }
         />
