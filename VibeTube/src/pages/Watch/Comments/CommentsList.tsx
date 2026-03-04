@@ -4,8 +4,10 @@ import CommentItem from "./CommentItem";
 
 export default function CommentsList({
   videoId,
+  refresh,
 }: {
   videoId: string;
+  refresh?: number;
 }) {
   const [comments, setComments] = useState<any[]>([]);
 
@@ -44,8 +46,8 @@ export default function CommentsList({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [videoId]);
-
+  }, [videoId, refresh]);
+  
   return (
     <div>
       <h3>Комментарии</h3>
@@ -55,6 +57,7 @@ export default function CommentsList({
           key={c.id}
           comment={c}
           videoId={videoId}
+          onCommentAdded={fetchComments}
         />
       ))}
     </div>

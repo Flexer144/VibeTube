@@ -21,7 +21,7 @@ export default function Home() {
       .from("videos")
       .select(`
         *,
-        profiles(username),
+        profiles(username, avatar_url),
         video_genres(
           genres(*)
         )

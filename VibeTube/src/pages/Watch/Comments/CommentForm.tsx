@@ -5,9 +5,11 @@ import { useAuth } from "../../../app/providers/AuthProvider";
 export default function CommentForm({
   videoId,
   parentId,
+  onCommentAdded,
 }: {
   videoId: string;
   parentId?: string | null;
+  onCommentAdded?: () => void;
 }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -27,6 +29,11 @@ export default function CommentForm({
     });
 
     setText("");
+
+    if (onCommentAdded) {
+      onCommentAdded();
+    }
+
     setLoading(false);
   };
 

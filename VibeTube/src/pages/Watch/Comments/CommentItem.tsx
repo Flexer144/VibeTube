@@ -2,17 +2,27 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../../shared/lib/supabase";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import CommentForm from "./CommentForm";
+import { timeAgo } from "../../../shared/utils/timeAgo";
+import '../../../styles/CommentsStyle.css';
+
 
 export default function CommentItem({
   comment,
   videoId,
-}: any) {
+  // onCommentAdded,
+}: {
+  comment: any;
+  videoId: string;
+  onCommentAdded?: () => void;
+}) {
   const { user } = useAuth();
 
   const [likes, setLikes] = useState<number>(0);
   const [liked, setLiked] = useState(false);
   const [showReply, setShowReply] = useState(false);
   const [replies, setReplies] = useState<any[]>([]);
+  const [refresh, setRefresh] = useState(0);
+  const [showReplies, setShowReplies] = useState(false);
 
   // ---------- загрузка лайков ----------
   const fetchLikes = async () => {
@@ -26,6 +36,10 @@ export default function CommentItem({
     if (user) {
       setLiked(data?.some((l) => l.user_id === user.id) ?? false);
     }
+  };
+
+  const refreshReplies = () => {
+    setRefresh((r) => r + 1);
   };
 
   // ---------- лайк ----------
@@ -61,35 +75,75 @@ export default function CommentItem({
   useEffect(() => {
     fetchLikes();
     fetchReplies();
-  }, []);
+  }, [refresh]);
 
   return (
-    <div style={{ marginBottom: 15 }}>
-      <b>{comment.profiles?.username}</b>
+    <div className="comment-item" style={{ marginBottom: 15 }}>
+
+      {/* header */}
+      <div className="comment-header">
+        <b>{comment.profiles?.username}</b>
+
+        <span className="comment-time">
+          {timeAgo(comment.created_at)}
+        </span>
+      </div>
+
+      {/* текст */}
       <p>{comment.text}</p>
 
-      <button onClick={toggleLike}>
-        👍 {likes}
-      </button>
+      {/* действия */}
+      <div className="comment-actions">
 
-      <button onClick={() => setShowReply(!showReply)}>
-        Ответить
-      </button>
+        <button onClick={toggleLike}>
+          👍 {likes}
+        </button>
 
+        <button onClick={() => setShowReply(!showReply)}>
+          Ответить
+        </button>
+
+      </div>
+
+
+      {/* форма ответа */}
       {showReply && (
-        <CommentForm videoId={videoId} parentId={comment.id} />
+        <CommentForm
+          videoId={videoId}
+          parentId={comment.id}
+          onCommentAdded={refreshReplies}
+        />
+      )}
+
+      {/* кнопка показать ответы */}
+      {replies.length > 0 && (
+        <button
+          className="show-replies-btn"
+          onClick={() => setShowReplies(!showReplies)}
+        >
+          {showReplies
+            ? "Скрыть ответы"
+            : `Показать ответы (${replies.length})`}
+        </button>
       )}
 
       {/* ответы */}
-      <div style={{ marginLeft: 20 }}>
-        {replies.map((r) => (
-          <CommentItem
-            key={r.id}
-            comment={r}
-            videoId={videoId}
-          />
-        ))}
-      </div>
+      {showReplies && (
+        <div
+          className="comment-replies"
+          style={{ marginLeft: 30 }}
+        >
+          {replies.map((r) => (
+            <CommentItem
+              key={r.id}
+              comment={r}
+              videoId={videoId}
+              onCommentAdded={refreshReplies}
+            />
+          ))}
+        </div>
+      )}
+
     </div>
   );
 }

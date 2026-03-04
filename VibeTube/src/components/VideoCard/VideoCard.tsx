@@ -21,11 +21,30 @@ export default function VideoCard({ video }: VideoCardProps) {
       />
 
       <div className="video-info">
-        <h4>{video.title}</h4>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <img
+            src={
+              video.profiles?.avatar_url ||
+              `https://ui-avatars.com/api/?name=${video.profiles?.username}`
+            }
+            alt="avatar"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              objectFit: "cover"
+            }}
+          />
 
-        <p className="video-author">
-          {video.profiles?.username || "Unknown"}
-        </p>
+          <div>
+            <div style={{ fontSize: 14 }}>
+              {video.title}
+            </div>
+            <div style={{ fontSize: 12, color: "#888" }}>
+              {video.profiles?.username}
+            </div>
+          </div>
+        </div>
 
         <div className="video-genres">
           {video.video_genres?.map((vg: any) => (

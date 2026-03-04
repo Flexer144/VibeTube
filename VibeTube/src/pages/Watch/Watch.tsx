@@ -1,5 +1,5 @@
-import { useParams } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "../../shared/lib/supabase";
 
 import VideoPlayer from "./VideoPlayer";
@@ -7,25 +7,38 @@ import VideoInfo from "./VideoInfo";
 import VideoActions from "./VideoActions";
 import CommentsList from "./Comments/CommentsList";
 import CommentForm from "./Comments/CommentForm";
-import '../../pages/Watch/WatchStyle.css';
+import { timeAgo } from "../../shared/utils/timeAgo";
+import "../../pages/Watch/StyleWatch/WatchStyle.css";
 
 export default function Watch() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [video, setVideo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [commentsRefresh, setCommentsRefresh] = useState(0);
+  const [recommended, setRecommended] = useState<any[]>([]);
+  const [subscribersCount, setSubscribersCount] = useState<number>(0);
+
   const viewTriggered = useRef(false);
 
+  /* ===========================
+     Загрузка видео
+  =========================== */
   useEffect(() => {
-    fetchVideo();
+    if (id) {
+      fetchVideo();
+    }
   }, [id]);
 
-  // Загружаем видео
   const fetchVideo = async () => {
+    setLoading(true);
+
     const { data } = await supabase
       .from("videos")
       .select(`
         *,
-        profiles(username),
+        profiles(username, avatar_url),
         video_genres(
           genres(name,id)
         )
@@ -35,9 +48,68 @@ export default function Watch() {
 
     setVideo(data);
     setLoading(false);
+    viewTriggered.current = false;
   };
 
-  // ✅ НОВАЯ логика просмотров (StrictMode-safe)
+  /* ===========================
+     Получение подписчиков
+  =========================== */
+  const fetchSubscribers = useCallback(async () => {
+    if (!video?.author_id) return;
+
+    const { count, error } = await supabase
+      .from("subscriptions")
+      .select("*", { count: "exact", head: true })
+      .eq("channel_id", video.author_id);
+
+    if (!error && typeof count === "number") {
+      setSubscribersCount(count);
+    }
+  }, [video?.author_id]);
+
+  useEffect(() => {
+    fetchSubscribers();
+  }, [fetchSubscribers]);
+
+  /* ===========================
+     Рекомендованные видео
+  =========================== */
+  useEffect(() => {
+    const fetchRecommended = async () => {
+      const { data, error } = await supabase
+        .from("videos")
+        .select(`
+          id,
+          title,
+          thumbnail_url,
+          views,
+          created_at,
+          profiles(username)
+        `)
+        .neq("id", id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (!error && data) {
+        setRecommended(data);
+      }
+    };
+
+    if (id) {
+      fetchRecommended();
+    }
+  }, [id]);
+
+  /* ===========================
+     Обновление комментариев
+  =========================== */
+  const refreshComments = () => {
+    setCommentsRefresh((prev) => prev + 1);
+  };
+
+  /* ===========================
+     Инкремент просмотров
+  =========================== */
   useEffect(() => {
     if (!id || !video) return;
     if (viewTriggered.current) return;
@@ -57,23 +129,98 @@ export default function Watch() {
     increment();
   }, [id, video]);
 
+  /* =========================== */
 
   if (loading) return <p>Загрузка...</p>;
   if (!video) return <p>Видео не найдено</p>;
 
   return (
-    <div className="watch-page">
+    <div
+      style={{
+        display: "flex",
+        gap: 20,
+        alignItems: "flex-start"
+      }}
+    >
+      {/* ЛЕВАЯ ЧАСТЬ */}
+      <div style={{ flex: 3 }}>
+        <VideoPlayer url={video.video_url} />
 
-      <VideoPlayer url={video.video_url} />
+        <VideoInfo
+          video={video}
+          subscribersCount={subscribersCount}
+          onSubscriptionChange={fetchSubscribers} // 🔥 ВОТ ГЛАВНОЕ
+        />
 
-      <VideoInfo video={video} />
+        <VideoActions videoId={video.id} />
 
-      <VideoActions videoId={video.id} />
+        <CommentForm
+          videoId={video.id}
+          onCommentAdded={refreshComments}
+        />
 
-      <CommentForm videoId={video.id} />
+        <CommentsList
+          videoId={video.id}
+          refresh={commentsRefresh}
+        />
+      </div>
 
-      <CommentsList videoId={video.id} />
+      {/* ПРАВАЯ ЧАСТЬ — рекомендованные */}
+      <div style={{ flex: 1 }}>
+        {recommended.map((video) => (
+          <div
+            key={video.id}
+            style={{
+              display: "flex",
+              gap: 10,
+              marginBottom: 15,
+              cursor: "pointer"
+            }}
+            onClick={() => navigate(`/video/${video.id}`)}
+          >
+            <img
+              src={video.thumbnail_url}
+              alt={video.title}
+              style={{
+                width: 160,
+                height: 90,
+                objectFit: "cover",
+                borderRadius: 10
+              }}
+            />
 
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 14,
+                  marginBottom: 4
+                }}
+              >
+                {video.title}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#888"
+                }}
+              >
+                {video.profiles?.username}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#888"
+                }}
+              >
+                {video.views} просмотров • {timeAgo(video.created_at)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
