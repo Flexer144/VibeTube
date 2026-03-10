@@ -1,0 +1,175 @@
+/* Основной контейнер карточки */
+.video-card {
+  width: 100%;
+  cursor: pointer;
+   position: relative;
+  transition: transform 0.2s ease;
+}
+
+/* Обертка для превью с четким форматом 16/9 */
+.thumbnail-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9; /* Современный способ задать пропорции */
+  background-color: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Стили для картинки и видео внутри обертки */
+.video-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Видео-превью (лежит поверх) */
+.video-preview-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+  pointer-events: none;
+}
+
+.video-preview-overlay.visible {
+  opacity: 1;
+}
+
+/* Плашка времени */
+.duration-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+  font-family: Arial, Helvetica, sans-serif
+}
+
+/* Секция с информацией под видео */
+.video-info-container {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  
+}
+
+.author-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.video-text-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.video-title {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 20px;
+  color: #ffffff;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.video-meta-row {
+  font-size: 15px;
+  color: #aaa;
+  display: flex;
+  flex-direction: column;
+}
+.video-meta-row > span:first-child{
+  margin-bottom: 5px;
+}
+
+.author-name:hover {
+  color: rgb(116, 0, 211);
+}
+
+/* Жанры */
+.video-genres-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.genre-tag {
+  background-color: rgba(83, 0, 151, 0.432);
+  color: rgb(222, 181, 255);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(83, 0, 151, 0.897);
+  font-size: 13px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Обертка контента поверх свечения */
+.video-card-inner {
+  position: relative;
+  z-index: 1; /* Держит контент поверх размытого фона */
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* Если у тебя есть отступы внутри карточки, они должны быть здесь */
+}
+
+/* Чуть-чуть увеличиваем карточку при наведении */
+.video-card:hover .video-card-inner {
+  transform: scale(1.02);
+}
+
+/* Убираем скругления превью при наведении (эффект YouTube) */
+.video-media {
+  transition: border-radius 0.3s ease;
+  /* Убедись, что тут стоит твой стандартный border-radius, например: border-radius: 12px; */
+}
+
+.video-card:hover .video-media,
+.video-card:hover .video-preview-overlay {
+  border-radius: 0;
+}
+
+/* --- МАГИЯ СВЕЧЕНИЯ (Ambient Mode) --- */
+.ambient-glow {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  /* Занимает 70% высоты, чтобы светить из-под превью, но не засвечивать текст внизу */
+  height: 70%; 
+  
+  background-size: cover;
+  background-position: center;
+  
+  /* Размытие и насыщенность вытягивают цвета превью */
+  filter: blur(35px) saturate(1.8);
+  opacity: 0;
+  z-index: 0; /* Обязательно под контентом */
+  
+  pointer-events: none; /* Чтобы слой не перехватывал клики мышки */
+  
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform: scale(0.9);
+}
+
+.ambient-glow.active {
+  opacity: 0.6; /* Настрой яркость свечения (от 0.1 до 1) */
+  transform: scale(1.05) translateY(10px); /* Свечение слегка расширяется и опускается */
+}

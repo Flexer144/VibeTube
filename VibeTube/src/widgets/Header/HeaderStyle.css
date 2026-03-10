@@ -1,0 +1,94 @@
+.header-wrapper {
+  background-color: rgba(15, 15, 15, 0.9); /* Dark transparent background like YT overlays */
+  backdrop-filter: blur(5px); /* Frosted glass effect for modern beauty (optional, remove if not supported) */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column; /* Делаем два уровня */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  transition: background-color 0.3s ease; /* Smooth transition on hover/scroll if needed */
+}
+
+/* ВЕРХНИЙ УРОВЕНЬ */
+.header-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 66px; /* Высота как на YT */
+}
+
+/* Левая часть */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 150px;
+}
+
+/* ПОИСК ПО ЦЕНТРУ */
+.header-center {
+  flex: 0 1 720px; /* Поиск не растягивается больше 720px */
+  margin: 0 20px;
+}
+
+/* Правая часть */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 150px;
+  justify-content: flex-end;
+}
+.header-avatar{
+ border: 2px solid rgba(114, 3, 204, 0.925);
+ padding: 2px;
+ transition: border 0.2s;
+}
+.header-avatar:hover{
+ border: 2px solid rgb(140, 0, 255);
+}
+
+/* НИЖНИЙ УРОВЕНЬ (ЖАНРЫ) */
+.header-bottom-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Скролл жанров */
+.header-genres-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.header-genres-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Кнопки-чипсы */
+.genre-chip {
+  background-color: rgba(83, 0, 151, 0.432);
+  color: rgb(222, 181, 255);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, transform 0.2s ease; /* Добавил плавный зум для красоты */
+}
+
+.genre-chip:hover {
+  background-color: rgba(103, 0, 187, 0.658);
+}
+
+.genre-chip.active {
+  background-color: rgb(119, 0, 216);
+  color: rgb(255, 255, 255);
+}

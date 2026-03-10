@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { logoutUser } from "../../features/auth/logout";
 import { useEffect, useState } from "react";
@@ -9,100 +9,62 @@ import '../../styles/HomeStyle.css';
 export default function Home() {
   const { user, profile, loading } = useAuth();
   const [videos, setVideos] = useState<any[]>([]);
-  // const [loadingVideo, setLoadingVideo] = useState(true); ----- прогрузка видео, потом сделать скелетон
-  const [genres, setGenres] = useState<any[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-  const navigate = useNavigate();
 
-  const fetchVideos = async (genreId?: number) => {
-    // setLoadingVideo(true);   ----- прогрузка видео, потом сделать скелетон
+  const [searchParams] = useSearchParams();
+  const search = searchParams.get("q") || "";
+  const genreId = searchParams.get("genre"); // <--- Слушаем жанр из URL
 
-    let query = supabase
-      .from("videos")
-      .select(`
-        *,
-        profiles(username, avatar_url),
-        video_genres(
-          genres(*)
-        )
-      `)
-      .order("created_at", { ascending: false });
+  const fetchVideos = async () => {
+  let query = supabase.from("video_search_view").select("*");
 
-    if (genreId) {
-      query = supabase
-        .from("videos")
-        .select(`
-          *,
-          profiles(username),
-          video_genres!inner(
-            genre_id,
-            genres(*)
-          )
-        `)
-        .eq("video_genres.genre_id", genreId)
-        .order("created_at", { ascending: false });
-    }
+  // 1. Фильтр по поиску
+  if (search) {
+    query = query.or(`title.ilike.%${search}%,author_username.ilike.%${search}%,search_genres_string.ilike.%${search}%`);
+  }
 
-    const { data, error } = await query;
+  // 2. Фильтр по жанру
+  if (genreId) {
+    // ВАЖНО: Убираем parseInt! Оставляем genreId как есть (это строка-UUID)
+    query = query.contains("genre_ids", [genreId]); 
+  }
 
-    if (error) console.error(error);
+  const { data, error } = await query.order("created_at", { ascending: false });
 
-    setVideos(data || []);
-    // setLoadingVideo(false); ----- прогрузка видео, потом сделать скелетон
-  };
+  if (error) {
+    console.error("Fetch Error:", error);
+    setVideos([]);
+  } else {
+    // ... остальной код форматирования
+    const formattedData = data?.map(v => ({
+      ...v,
+      profiles: { username: v.author_username, avatar_url: v.author_avatar },
+      video_genres: v.genre_names?.map((name: string) => ({ genres: { name: name } })) || []
+    }));
+    setVideos(formattedData || []);
+  }
+};
 
-
-
-  const fetchGenres = async () => {
-    const { data } = await supabase.from("genres").select("*");
-    setGenres(data || []);
-  };
-
+  // Перезагружаем видео каждый раз, когда меняется поиск ИЛИ жанр в URL
   useEffect(() => {
     fetchVideos();
-    fetchGenres();
-  }, []);
+  }, [search, genreId]);
 
-  const handleGenreChange = (id: number | null) => {
-    setSelectedGenre(id);
-    fetchVideos(id ?? undefined);
-  };
+
 
   if (loading) return <p>Загрузка...</p>;
   if (!user) return <p>Не авторизован</p>;
 
   return (
     <>
-      <h2>Привет, {profile?.username} 👋</h2>
       <button onClick={logoutUser}>Выйти</button>
-      <button onClick={() => navigate("/upload")}>Загрузить видео</button>
-
-      <button
-        className={selectedGenre === null ? "activeGenre" : ""}
-        onClick={() => handleGenreChange(null)}
-      >
-        Все
-      </button>
-
-      {genres.map((g) => (
-        <button
-          key={g.id}
-          className={selectedGenre === g.id ? "activeGenre" : ""}
-          onClick={() => handleGenreChange(g.id)}
-        >
-          {g.name}
-        </button>
-      ))}
 
       <div className="home-page">
-      <h2>Видео</h2>
-
-      <div className="video-grid">
-        {videos.map((video) => (
-          <VideoCard key={video.id} video={video} />
-        ))}
+        <div className="video-grid">
+          {videos.map((video) => (
+            <VideoCard key={video.id} video={video}/>
+          ))}
+        </div>
       </div>
-    </div>
     </>
   );
 }

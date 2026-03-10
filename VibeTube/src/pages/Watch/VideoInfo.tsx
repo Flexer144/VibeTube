@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { useAuth } from "../../app/providers/AuthProvider";
+import { useNavigate } from "react-router-dom";
 
 
 interface Props {
@@ -16,7 +17,7 @@ export default function VideoInfo({
 }: Props) {
   const { user } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
-
+  const navigate = useNavigate();
   const channelId = video.author_id;
 
   useEffect(() => {
@@ -74,12 +75,17 @@ export default function VideoInfo({
           justifyContent: "space-between"
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            cursor: "pointer"
+          }}
+          onClick={() => navigate(`/channel/${channelId}`)}
+        >
           <img
-            src={
-              video.profiles?.avatar_url ||
-              `https://ui-avatars.com/api/?name=${video.profiles?.username}`
-            }
+            src={video.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${video.profiles?.username}`}
             alt="avatar"
             style={{
               width: 40,
@@ -93,6 +99,7 @@ export default function VideoInfo({
             <div style={{ fontWeight: 600 }}>
               {video.profiles?.username}
             </div>
+
             <div style={{ fontSize: 14, color: "#aaa" }}>
               {subscribersCount} подписчиков
             </div>

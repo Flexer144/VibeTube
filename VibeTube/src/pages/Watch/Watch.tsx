@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "../../shared/lib/supabase";
+import { useAuth } from "../../app/providers/AuthProvider"; 
 
 import VideoPlayer from "./VideoPlayer";
 import VideoInfo from "./VideoInfo";
@@ -13,6 +14,7 @@ import "../../pages/Watch/StyleWatch/WatchStyle.css";
 export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [video, setVideo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,27 @@ export default function Watch() {
       fetchVideo();
     }
   }, [id]);
+
+   useEffect(() => {
+    const recordHistory = async () => {
+      if (user && video) {
+        const { error } = await supabase
+          .from('watch_history')
+          .upsert(
+            { 
+              user_id: user.id,
+              video_id: video.id,
+              viewed_at: new Date().toISOString() 
+            },
+            { onConflict: 'user_id, video_id' }
+          );
+        
+        if (error) console.error("Ошибка истории:", error);
+      }
+    };
+
+    recordHistory();
+  }, [video, user]);
 
   const fetchVideo = async () => {
     setLoading(true);
@@ -84,7 +107,7 @@ export default function Watch() {
           thumbnail_url,
           views,
           created_at,
-          profiles(username)
+          profiles(id, username, avatar_url)
         `)
         .neq("id", id)
         .order("created_at", { ascending: false })
@@ -203,7 +226,12 @@ export default function Watch() {
               <div
                 style={{
                   fontSize: 12,
-                  color: "#888"
+                  color: "#888",
+                  cursor: "pointer"
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/channel/${video.profiles?.id}`);
                 }}
               >
                 {video.profiles?.username}

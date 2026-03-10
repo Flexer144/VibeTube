@@ -15,6 +15,17 @@ import {
   Loader2 
 } from "lucide-react";
 
+const formatDuration = (seconds: number) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+
+  const mDisplay = m < 10 && h > 0 ? `0${m}` : m;
+  const sDisplay = s < 10 ? `0${s}` : s;
+
+  return h > 0 ? `${h}:${mDisplay}:${sDisplay}` : `${mDisplay}:${sDisplay}`;
+};
+
 export default function Upload() {
   const navigate = useNavigate();
 
@@ -23,6 +34,7 @@ export default function Upload() {
   const [description, setDescription] = useState("");
   const [genres, setGenres] = useState<any[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [videoDuration, setVideoDuration] = useState("");
   
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -44,6 +56,19 @@ export default function Upload() {
     };
     fetchGenres();
   }, []);
+
+  const handleVideoChange = (file: File | null) => {
+  if (!file) return;
+  setVideoFile(file);
+
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.onloadedmetadata = () => {
+    window.URL.revokeObjectURL(video.src);
+    setVideoDuration(formatDuration(video.duration));
+  };
+  video.src = URL.createObjectURL(file);
+};
 
   // --- Логика переключения шагов ---
   const handleNext = () => {
@@ -120,16 +145,17 @@ export default function Upload() {
 
       // 4. Создаём запись в БД
       const { data: insertedVideo, error: insertError } = await supabase
-        .from("videos")
-        .insert({
-          author_id: user.id,
-          title,
-          description,
-          video_url: videoUrl.publicUrl,
-          thumbnail_url: thumbUrl.publicUrl,
-        })
-        .select()
-        .single();
+      .from("videos")
+      .insert({
+        author_id: user.id,
+        title,
+        description,
+        video_url: videoUrl.publicUrl,
+        thumbnail_url: thumbUrl.publicUrl,
+        duration: videoDuration,
+      })
+      .select()
+      .single();
 
       if (insertError) throw insertError;
 
@@ -245,12 +271,12 @@ export default function Upload() {
                 onClick={() => videoInputRef.current?.click()}
               >
               <input
-                  type="file"
-                  accept="video/*"
-                  hidden
-                  ref={videoInputRef}
-                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                />
+                type="file"
+                accept="video/*"
+                hidden
+                ref={videoInputRef}
+                onChange={(e) => handleVideoChange(e.target.files?.[0] || null)} // <--- ПОМЕНЯЛИ ЗДЕСЬ
+              />
                  {videoFile ? (
                   <div className="file-preview">
                     <FileVideo size={48} className="text-blue-500" />
