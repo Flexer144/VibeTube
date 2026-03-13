@@ -1,4 +1,6 @@
-/* GenreSelector.css */
+@import url('https://fonts.googleapis.com/css2?family=Staatliches&display=swap');
+
+
 :root {
   --gs-bg: #09090bb6;       /* Очень темный фон */
   --gs-border: #27272a;   /* Цвет рамок */

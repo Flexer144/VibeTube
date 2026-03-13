@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import VideoCard from "../../components/VideoCard/VideoCard";
 import '../../styles/HomeStyle.css';
+import SideBar from "../../components/SideBar/SideBar";
 
 export default function Home() {
   const { user, profile, loading } = useAuth();
@@ -56,8 +57,6 @@ export default function Home() {
 
   return (
     <>
-      <button onClick={logoutUser}>Выйти</button>
-
       <div className="home-page">
         <div className="video-grid">
           {videos.map((video) => (

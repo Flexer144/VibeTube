@@ -10,6 +10,7 @@ import CommentsList from "./Comments/CommentsList";
 import CommentForm from "./Comments/CommentForm";
 import { timeAgo } from "../../shared/utils/timeAgo";
 import "../../pages/Watch/StyleWatch/WatchStyle.css";
+import { pluralize } from "../../shared/lib/pluralize";
 
 export default function Watch() {
   const { id } = useParams();
@@ -111,7 +112,6 @@ export default function Watch() {
         `)
         .neq("id", id)
         .order("created_at", { ascending: false })
-        .limit(10);
 
       if (!error && data) {
         setRecommended(data);
@@ -243,7 +243,7 @@ export default function Watch() {
                   color: "#888"
                 }}
               >
-                {video.views} просмотров • {timeAgo(video.created_at)}
+                {video.views} {pluralize(video.views, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
               </div>
             </div>
           </div>

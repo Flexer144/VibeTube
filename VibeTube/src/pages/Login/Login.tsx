@@ -1,8 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { loginUser } from "../../features/auth/login";
 import { Link, useNavigate } from "react-router-dom";
 import '../../styles/pageLogin.css';
-import BgLogin from "../../assets/background/backgroundLogin.mp4";
 import eye from "../../assets/icon/eye.png"
 import eyeHide from "../../assets/icon/eyeHide.png"
 import emailImg from "../../assets/icon/email.png"
@@ -12,12 +11,62 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("Войдите в свой аккаунт")
-  const [errorStatus, setErrorStatus] = useState<boolean>(false)
+  const [errorMessage, setErrorMessage] = useState("Войдите в свой аккаунт");
+  const [errorStatus, setErrorStatus] = useState<boolean>(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const navigate = useNavigate();
 
-  // Регулярное выражение для проверки Email
+
+ useEffect(() => {
+  let cursorApp: any = null;
+  let isCancelled = false; // Флаг для отмены, если компонент размонтировался
+
+  const initCursor = async () => {
+    try {
+      // @ts-ignore 
+      const module = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js");
+      
+      // Если пока мы грузили модуль, пользователь уже ушел со страницы — выходим
+      if (isCancelled) return;
+
+      const TubesCursor = module.default;
+      if (canvasRef.current) {
+        cursorApp = TubesCursor(canvasRef.current, {
+          tubes: {
+            colors: ["#6366f1", "#8b5cf6", "#3b82f6"],
+            lights: {
+              intensity: 200,
+              colors: ["#a5b4fc", "#c4b5fd", "#93c5fd", "#ffffff"]
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.warn("WebGPU Cursor Error:", error);
+    }
+  };
+
+  initCursor();
+
+  return () => {
+    isCancelled = true;
+    if (cursorApp) {
+      // Пытаемся полностью остановить рендер
+      if (typeof cursorApp.destroy === 'function') {
+        cursorApp.destroy();
+      }
+      cursorApp = null;
+    }
+    // Очищаем контекст canvas вручную, если библиотека этого не делает
+    if (canvasRef.current) {
+      const gl = canvasRef.current.getContext('webgl2') || canvasRef.current.getContext('webgl');
+      if (gl) gl.getExtension('WEBGL_lose_context')?.loseContext();
+    }
+  };
+}, []);
+
+
   const validateEmail = (email: string) => {
     return String(email)
       .toLowerCase()
@@ -28,14 +77,14 @@ export default function Login() {
 
   const isEmailValid = useMemo(() => validateEmail(email), [email]);
   const isFormValid = isEmailValid && password.length >= 8;
+  
   const submit = async () => {
     if (!isFormValid) return;
     const { error } = await loginUser(email, password);
 
-    // Сброс всех состояний
     setPassword("");
     setEmailTouched(false);
-    setShowPassword(false); // Добавляем сброс показа пароля
+    setShowPassword(false); 
 
     if (error?.message === 'Invalid login credentials') {
       setErrorMessage("Неверная почта или пароль!");
@@ -50,9 +99,15 @@ export default function Login() {
 
   return (
     <div className="auth-page">
-      <video className="auth-video" autoPlay muted loop playsInline>
-        <source src={BgLogin} type="video/mp4" />
-      </video>
+      {/* --- CANVAS ДЛЯ КУРСОРОВ --- */}
+      <canvas ref={canvasRef} className="cursor-canvas"></canvas>
+
+      {/* АНИМИРОВАННЫЙ ФОН */}
+      <div className="animated-background">
+        <div className="bg-orb orb-1"></div>
+        <div className="bg-orb orb-2"></div>
+        <div className="bg-orb orb-3"></div>
+      </div>
 
       <div className="auth-overlay" />
 
@@ -68,23 +123,15 @@ export default function Login() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => setEmailTouched(true)} // Помечаем, что пользователь выходил из поля
+              onBlur={() => setEmailTouched(true)}
             />
-            <button 
-              type="button" 
-              className="email-toggle"
-            >
-              <img 
-                src={emailImg} 
-                alt="toggle password" 
-                className="toggle-icon" 
-              />
+            <button type="button" className="email-toggle">
+              <img src={emailImg} alt="email icon" className="toggle-icon" />
             </button>
           </div>
           {emailTouched && !isEmailValid && (
             <span className="error-message-login">Введите корректный email</span>
           )}
-          
         </div>
 
         {/* Поле Пароль */}
@@ -101,11 +148,7 @@ export default function Login() {
               className="password-toggle"
               onClick={() => setShowPassword(!showPassword)}
             >
-              <img 
-                src={showPassword ? eyeHide : eye} 
-                alt="toggle password" 
-                className="toggle-icon" 
-              />
+              <img src={showPassword ? eyeHide : eye} alt="toggle password" className="toggle-icon" />
             </button>
           </div>
         </div>

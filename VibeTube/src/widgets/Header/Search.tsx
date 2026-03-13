@@ -60,6 +60,7 @@ export default function Search() {
     
     setShowDropdown(false); // Прячем подсказки при поиске
     navigate(`/search?q=${query}`);
+    setQuery('')
   };
 
   // Обработчик клика по конкретной подсказке из списка
@@ -67,6 +68,7 @@ export default function Search() {
     setQuery(title);
     setShowDropdown(false);
     navigate(`/search?q=${title}`);
+    setQuery('')
   };
 
   return (

@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
 
-import '../../styles/pageRegister.css';
-import BgLogin from "../../assets/background/backgroundLogin.mp4";
+// Подключаем общий CSS, где лежат стили для фона, карточки и курсора
+import '../../styles/pageRegister.css'; 
+
 import eye from "../../assets/icon/eye.png";
 import eyeHide from "../../assets/icon/eyeHide.png";
 import emailImg from "../../assets/icon/email.png";
@@ -11,6 +12,9 @@ import userImg from "../../assets/icon/userIcon.png";
 import passwordImg from "../../assets/icon/passwordIcon.png";
 
 export default function Register() {
+  // --- Реф для 3D курсора ---
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   // --- Данные формы ---
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -34,6 +38,49 @@ export default function Register() {
 
   const navigate = useNavigate();
 
+  // --- Инициализация 3D-курсора (как в Login) ---
+  useEffect(() => {
+    let cursorApp: any = null;
+    let isCancelled = false; 
+
+    const initCursor = async () => {
+      try {
+        // @ts-ignore 
+        const module = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js");
+        
+        if (isCancelled) return;
+
+        const TubesCursor = module.default;
+        if (canvasRef.current) {
+          cursorApp = TubesCursor(canvasRef.current, {
+            tubes: {
+              colors: ["#6366f1", "#8b5cf6", "#3b82f6"],
+              lights: {
+                intensity: 200,
+                colors: ["#a5b4fc", "#c4b5fd", "#93c5fd", "#ffffff"]
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.warn("WebGPU Cursor Error:", error);
+      }
+    };
+
+    initCursor();
+
+    return () => {
+      isCancelled = true;
+      if (cursorApp && typeof cursorApp.destroy === 'function') {
+        cursorApp.destroy();
+      }
+      if (canvasRef.current) {
+        const gl = canvasRef.current.getContext('webgl2') || canvasRef.current.getContext('webgl');
+        if (gl) gl.getExtension('WEBGL_lose_context')?.loseContext();
+      }
+    };
+  }, []);
+
   // 1. Валидация Email
   const validateEmail = (email: string) => {
     return String(email)
@@ -50,8 +97,6 @@ export default function Register() {
 
   // 3. Валидация Пароля (8-30 символов, обязательно наличие латинских букв)
   const validatePassword = (pass: string) => {
-    // (?=.*[a-zA-Z]) — обязательное наличие хотя бы одной латинской буквы
-    // [a-zA-Z0-9!@#$%^&*()_+=\-{}\[\]:;"'<>,.?\/|\\~`] — разрешенный набор символов (только латиница и спецсимволы)
     return String(pass).match(/^(?=.*[a-zA-Z])[a-zA-Z0-9!@#$%^&*()_+=\-{}\[\]:;"'<>,.?\/|\\~`]{8,30}$/);
   };
 
@@ -76,8 +121,6 @@ export default function Register() {
 
     setIsCheckingUsername(true);
     
-    // Используем .select с ограничением, так как нам просто нужно знать, 
-    // есть ли ХОТЯ БЫ ОДИН такой пользователь
     const { data, error } = await supabase
       .from("profiles")
       .select("username")
@@ -90,7 +133,6 @@ export default function Register() {
       return;
     }
 
-    // Если массив data не пустой (длина > 0), значит имя занято
     if (data && data.length > 0) {
       setUsernameTaken(true);
     } else {
@@ -136,10 +178,8 @@ export default function Register() {
       });
 
     if (profileError) {
-      // Ловим ошибку дубликата, если проверка onBlur пропустила (race condition)
       if (profileError.message.includes("duplicate key") || profileError.code === "23505") {
          setErrorMessage("Этот никнейм уже занят!");
-         console.log(errorMessage)
          setUsernameTaken(true);
       } else {
          setErrorMessage("Ошибка создания профиля");
@@ -156,11 +196,15 @@ export default function Register() {
 
   return (
     <div className="auth-page">
-      <video className="auth-video" autoPlay muted loop playsInline>
-        <source src={BgLogin} type="video/mp4" />
-      </video>
+      {/* --- CANVAS ДЛЯ КУРСОРОВ --- */}
+      <canvas ref={canvasRef} className="cursor-canvas"></canvas>
 
-      <div className="auth-overlay" />
+      {/* --- АНИМИРОВАННЫЙ ФОН ВМЕСТО ВИДЕО --- */}
+      <div className="animated-background">
+        <div className="bg-orb orb-1"></div>
+        <div className="bg-orb orb-2"></div>
+        <div className="bg-orb orb-3"></div>
+      </div>
 
       <div className="auth-card">
         <h1 className="auth-title">Регистрация</h1>
@@ -176,12 +220,13 @@ export default function Register() {
               onChange={handleUsernameChange}
               onBlur={handleUsernameBlur}
             />
-            <button disabled={true} type="button" className="user-toggle" style={{cursor:'default'}}>
+            <button disabled={true} type="button" className="email-toggle" style={{cursor:'default'}}>
                <img src={userImg} alt="user" className="toggle-icon" />
             </button>
           </div>
+          {/* Используем универсальный класс error-message-login для всех ошибок */}
           {usernameTouched && !isUsernameFormatValid && (
-            <span className="error-message-user">6-20 символов (a-z, 0-9, _)</span>
+            <span className="error-message-login">6-20 символов (a-z, 0-9, _)</span>
           )}
           {usernameTouched && isUsernameFormatValid && usernameTaken && (
             <span className="error-message-user">Это имя пользователя уже занято</span>
@@ -243,7 +288,7 @@ export default function Register() {
             />
             <button 
               type="button" 
-              className="password-toggle"
+              className="email-toggle" /* Заменил на email-toggle, чтобы убрать pointer cursor для некликабельной иконки */
             >
               <img src={passwordImg} alt="toggle" className="toggle-icon" />
             </button>

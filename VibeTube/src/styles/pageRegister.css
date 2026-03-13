@@ -146,7 +146,7 @@
 }
 
 .auth-footer a {
-  color: #992bff;
+  color: rgb(124, 126, 255);
   text-decoration: none;
 }
 .auth-footer a:hover {
@@ -233,6 +233,19 @@
   .auth-title {
     font-size: 26px;
   }
+  .error-message{
+    top: 175px;
+  }
+  .error-message-user{
+    top: 105px;
+  }
+  .error-message-repassword{
+    top: 311px;
+  }
+  .error-message-password{
+    top: 243px;
+  }
+
 }
 
 /* Планшеты */

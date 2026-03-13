@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { timeAgo } from "../../shared/utils/timeAgo";
 import '../VideoCard/VideoCardStyle.css';
+import { pluralize } from "../../shared/lib/pluralize";
 
 type VideoCardProps = {
   video: any;
@@ -14,7 +15,7 @@ export default function VideoCard({ video }: VideoCardProps) {
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  const avatar = video.profiles?.avatar_url || video.author_avatar_url;
+  const avatar = video.profiles?.avatar_url || video.author_avatar_url || video.author_avatar;
   const username = video.profiles?.username || video.author_username; 
   const thumbnailUrl = video.thumbnail_url || "/placeholder.jpg";
 
@@ -95,10 +96,10 @@ export default function VideoCard({ video }: VideoCardProps) {
                   navigate(`/channel/${video.author_id}`);
                 }}
               >
-                {username} {/* Использовал переменную, чтобы не дублировать код */}
+                {username}
               </span>
               <span>
-                {video.views || 0} просмотров • {timeAgo(video.created_at)}
+                {video.views || 0} {pluralize(video.views, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
               </span>
             </div>
 

@@ -3,17 +3,6 @@
     margin: 0;
     box-sizing: border-box;
 }
-/* ===== Общая обёртка ===== */
-.auth-page {
-  position: relative;
-  min-height: 100vh;
-  width: 100%;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', sans-serif;
-}
 
 /* ===== Видео-фон ===== */
 .auth-video {
@@ -39,6 +28,8 @@
   max-width: 490px;
   padding: 32px;
   border-radius: 20px;
+  position: relative;
+  z-index: 10;
 
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(18px);
@@ -108,37 +99,70 @@
   height: 20px;
 }
 
-/* ===== Кнопка ===== */
+/* ===== 6. Кнопка Входа (Без бага с черным фоном) ===== */
 .auth-button {
-  width: 100%;
-  height: 49px;
-  margin-top: 10px;
-
-  background: white;
-  border: none;
-  border-radius: 12px;
-
-  color: #000000;
-  font-size: 17px;
-  font-weight: 600;
-  cursor: pointer;
-
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background .5s, color .5s;
+    width: 100%;
+    height: 52px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    background-color: rgba(99, 102, 241, 0.9); /* Базовый цвет */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    z-index: 1;
 }
-.auth-button:hover{
-  background: rgb(228, 228, 228);
+
+/* Слой с градиентом, который будет плавно появляться */
+.auth-button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+    opacity: 0; /* Изначально невидим */
+    transition: opacity 0.3s ease;
+    z-index: -1; /* Под текстом, но над базовым фоном */
 }
-/* Стили для заблокированной кнопки */
+
+.auth-button:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+}
+
+/* При ховере просто проявляем слой с градиентом */
+.auth-button:not(:disabled):hover::after {
+    opacity: 1;
+}
+
+.auth-button:not(:disabled):active {
+    transform: translateY(1px) scale(0.98);
+}
+
 .auth-button:disabled {
-  background: none;
-  cursor: not-allowed;
-  color: #ffffff;
-  opacity: 0.6;
-  transform: none;
-  box-shadow: none;
-  border: 2px solid rgba(255, 255, 255, 0.836);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Блик (оставляем как был) */
+.auth-button::before {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: 0.6s;
+    z-index: 2; /* Поверх всего */
+}
+
+.auth-button:not(:disabled):hover::before {
+    left: 100%;
+}
 
 /* ===== Подвал ===== */
 .auth-footer {
@@ -180,6 +204,15 @@
   text-align: left;
 }
 
+.cursor-canvas {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0; 
+    pointer-events: none;
+}
 
 
 /* Иконка глаза */
@@ -212,13 +245,94 @@
   opacity: 1;
 }
 
-/* ===== Адаптив ===== */
+.auth-page {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(15, 15, 15); /* Темная основа */
+    overflow: hidden;
+}
+
+.animated-background {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden; 
+}
+
+.bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px); 
+    opacity: 0.6;
+}
+
+
+.orb-1 {
+    width: 500px;
+    height: 500px;
+    background: rgba(99, 102, 241, 0.7);
+    top: -10%;
+    left: 10%;
+    animation: move-1 12s infinite ease-in-out alternate;
+}
+
+
+.orb-2 {
+    width: 600px;
+    height: 600px;
+    background: rgba(139, 92, 246, 0.6);
+    bottom: -10%;
+    right: 10%;
+    animation: move-2 15s infinite ease-in-out alternate;
+}
+
+
+.orb-3 {
+    width: 400px;
+    height: 400px;
+    background: rgba(59, 130, 246, 0.5);
+    top: 40%;
+    left: 30%;
+    animation: move-3 10s infinite ease-in-out alternate;
+}
+
+
+
+@keyframes move-1 {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30vw, 20vh) scale(1.2); }
+    100% { transform: translate(-10vw, 40vh) scale(0.8); }
+}
+
+@keyframes move-2 {
+    0% { transform: translate(0, 0) scale(1.1); }
+    50% { transform: translate(-35vw, -30vh) scale(0.9); }
+    100% { transform: translate(10vw, -50vh) scale(1.2); }
+}
+
+@keyframes move-3 {
+    0% { transform: translate(0, 0) scale(0.9); }
+    50% { transform: translate(20vw, -20vh) scale(1.3); }
+    100% { transform: translate(-25vw, 15vh) scale(1); }
+}
+
+
 
 /* Телефоны */
 @media (max-width: 480px) {
   .auth-card {
     margin: 0 16px;
     padding: 24px;
+  }
+  .error-message-login{
+    margin-top: -16px;
   }
 
   .auth-title {
@@ -240,11 +354,3 @@
   }
 }
 
-
-
-
-/* Убираем лишний отступ у auth-field, так как он теперь в контейнере */
-/* .auth-field {
-  position: relative;
-  margin-bottom: 0; 
-} */

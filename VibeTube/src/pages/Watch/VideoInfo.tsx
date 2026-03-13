@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
+import { pluralize } from "../../shared/lib/pluralize";
 
 
 interface Props {
@@ -101,7 +102,7 @@ export default function VideoInfo({
             </div>
 
             <div style={{ fontSize: 14, color: "#aaa" }}>
-              {subscribersCount} подписчиков
+              {subscribersCount} {pluralize(subscribersCount, ['подписчик', 'подписчика', 'подписчиков'])}
             </div>
           </div>
         </div>

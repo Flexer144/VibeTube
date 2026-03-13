@@ -1,0 +1,73 @@
+.side-bar {
+    position: sticky;
+    top: var(--header-height); 
+    height: calc(100vh - var(--header-height));
+    background-color: transparent;
+    z-index: 10;
+    overflow-y: auto;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Скроллбар */
+.side-bar::-webkit-scrollbar { width: 6px; }
+.side-bar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 10px; }
+.side-bar:hover::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.15); }
+
+/* Размеры */
+.side-bar.expanded { width: 240px; padding: 12px 14px; }
+.side-bar.collapsed { width: 76px; padding: 12px 4px; }
+
+/* Элементы меню */
+.nav-item {
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #f1f1f1;
+    position: relative;
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+}
+
+.nav-item:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* --- АКТИВНЫЙ ЭЛЕМЕНТ --- */
+.nav-item.active {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.03) 0%, rgba(99, 102, 241, 0.18) 100%);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: inset -15px 0 25px -15px rgba(99, 102, 241, 0.6);
+}
+
+.nav-item.active::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 20%;
+    height: 60%;
+    width: 3px;
+    background-color: #6366f1;
+    border-radius: 4px 0 0 4px;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.8);
+}
+
+.nav-item.active svg {
+    color: #6366f1;
+    filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
+}
+
+/* Состояния сворачивания */
+.side-bar.expanded .nav-item { flex-direction: row; gap: 16px; padding: 10px 14px; }
+.side-bar.expanded .nav-item span { font-size: 14px; }
+
+.side-bar.collapsed .nav-item { flex-direction: column; justify-content: center; gap: 6px; padding: 14px 0; }
+.side-bar.collapsed .nav-item span { font-size: 10px; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-bar.collapsed .nav-item.active::after { right: 2px; }
+
+/* Разделители и заголовки */
+.sidebar-divider { height: 1px; background-color: rgba(255, 255, 255, 0.08); margin: 12px 8px; }
+.section-title { font-size: 14px; font-weight: 600; color: #aaa; margin: 16px 0 8px 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.sub-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+.sub-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
