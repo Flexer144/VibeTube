@@ -8,9 +8,10 @@ import AvatarUpload from "../Upload/UploadAvatar";
 import { SubscribeButton } from "../../components/Button/SubscribeButton";
 import "./ProfileStyle.css"; 
 import { pluralize } from "../../shared/lib/pluralize";
-
-// 1. Импортируем наш новый компонент-скелетон
 import ProfileSkeleton from "../../shared/Skeletons/ProfileSkeleton.tsx";
+
+import { AlertTriangle, CheckCircle, Trash2, X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export default function Profile() {
   const { id: channelId } = useParams();
@@ -24,6 +25,121 @@ export default function Profile() {
   const [subscribersCount, setSubscribersCount] = useState(0);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [videoToDelete, setVideoToDelete] = useState<any>(null); 
+  const [deletePassword, setDeletePassword] = useState(""); 
+  const [isDeleting, setIsDeleting] = useState(false); 
+  const [toasts, setToasts] = useState<any[]>([]);
+
+
+  // Функция для показа уведомлений (Toast)
+  const showToast = (type: 'error' | 'success', title: string, message: string) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, type, title, message, isLeaving: false }]);
+    
+    setTimeout(() => {
+      setToasts((prev) => prev.map((t) => t.id === id ? { ...t, isLeaving: true } : t));
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 500); // Ждем окончания анимации slideOutLeft
+    }, 4000); // Показываем 4 секунды
+  };
+
+  // Функция закрытия модалки
+  const closeDeleteModal = () => {
+    setVideoToDelete(null);
+    setDeletePassword("");
+  };
+
+  // Функция подтверждения удаления
+  const confirmDelete = async (e: React.MouseEvent) => {
+  e.preventDefault();
+  if (!deletePassword || !user?.email || !videoToDelete) return;
+  
+  setIsDeleting(true);
+
+  try {
+    // 1. Сначала пере-авторизация (проверка пароля)
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: deletePassword,
+    });
+
+    if (authError) {
+      showToast('error', 'Ошибка!', 'Неверный пароль. Попробуйте еще раз.');
+      setIsDeleting(false);
+      return;
+    }
+
+    // 2. Удаляем файлы из Storage
+    // Мы делаем это ПЕРЕД удалением из БД, так как нам нужны ссылки на файлы
+    const extractPath = (url: string, bucket: string) => {
+      if (!url) return null;
+      try {
+        // 1. Разбиваем по названию бакета
+        const parts = url.split(`${bucket}/`);
+        if (parts.length < 2) return null;
+
+        // 2. Убираем всё, что идет после знака вопроса (query параметры типа ?t=123)
+        const pathWithPotentialParams = parts[1];
+        const pathWithoutParams = pathWithPotentialParams.split('?')[0];
+
+        // 3. Декодируем символы (например, %20 превращаем в пробел)
+        const finalPath = decodeURIComponent(pathWithoutParams);
+        
+        // 4. Убираем ведущий слэш, если он вдруг появился
+        return finalPath.startsWith('/') ? finalPath.substring(1) : finalPath;
+      } catch (e) {
+        console.error("Ошибка парсинга пути:", e);
+        return null;
+      }
+    };
+    
+   // 2. Удаляем файлы из Storage
+    const videoPath = extractPath(videoToDelete.video_url, 'videos');
+    const thumbPath = extractPath(videoToDelete.thumbnail_url, 'thumbnails');
+
+    // ВАЖНО: Проверь эти строки в консоли!
+    console.log("ПОЛНЫЙ ПУТЬ ВИДЕО ДЛЯ УДАЛЕНИЯ:", `"${videoPath}"`);
+    console.log("ПОЛНЫЙ ПУТЬ ПРЕВЬЮ ДЛЯ УДАЛЕНИЯ:", `"${thumbPath}"`);
+    
+    if (videoPath) {
+      const { data, error: vErr } = await supabase.storage.from('videos').remove([videoPath]);
+      if (vErr) console.error("Ошибка удаления видео:", vErr);
+      else console.log("Видео успешно удалено из бакета:", data);
+    }
+    
+    if (thumbPath) {
+      const { data, error: tErr } = await supabase.storage.from('thumbnails').remove([thumbPath]);
+      if (tErr) console.error("Ошибка удаления превью:", tErr);
+      else console.log("Превью успешно удалено из бакета:", data);
+    }
+
+    // 3. Удаляем запись из БД (Cascade Delete в БД сам почистит лайки/комменты)
+    const { error: dbError } = await supabase
+      .from("videos")
+      .delete()
+      .eq("id", videoToDelete.id);
+
+    if (dbError) throw dbError;
+
+    // 4. Успех! Сначала чистим UI, потом закрываем модалку
+    setVideos((prev) => prev.filter((v) => v.id !== videoToDelete.id));
+    closeDeleteModal();
+    
+    // Показываем тост после закрытия модалки
+    setTimeout(() => {
+      showToast('success', 'Удалено', 'Видео и все связанные данные стерты.');
+    }, 200);
+
+  } catch (err: any) {
+      console.error("Full delete error:", err);
+      showToast('error', 'Ошибка', 'Не удалось полностью удалить видео.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -189,10 +305,82 @@ export default function Profile() {
         ) : (
           <div className="profile-video-grid">
             {videos.map((video) => (
-              <VideoCard key={video.id} video={video} />
+              // --- ОБНОВЛЕННАЯ ОБЕРТКА КАРТОЧКИ ---
+              <div key={video.id} className="video-card-wrapper">
+                <VideoCard video={video} />
+                
+                {/* Если это наш профиль, показываем кнопку удаления поверх видео */}
+                {isOwnProfile && (
+                  <div 
+                    className="delete-video-btn-overlay"
+                    onClick={() => setVideoToDelete(video)}
+                    title="Удалить видео"
+                  >
+                    <Trash2 size={18} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
+
+      {/* --- МОДАЛЬНОЕ ОКНО УДАЛЕНИЯ --- */}
+      {videoToDelete && createPortal(
+        <div className="delete-modal-overlay">
+          <div className="delete-modal-content">
+            <h3 className="delete-modal-title">Вы действительно хотите удалить этот ролик?</h3>
+            <p className="delete-modal-subtitle">Это действие нельзя будет отменить.</p>
+            
+            <input 
+              type="password" 
+              className="delete-modal-input" 
+              placeholder="Для подтверждения введите пароль"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              autoFocus
+            />
+
+            <div className="delete-modal-actions">
+              <button 
+                className="modal-btn cancel" 
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+              >
+                Отмена
+              </button>
+              <button 
+                className="modal-btn delete" 
+                onClick={confirmDelete}
+                disabled={!deletePassword || isDeleting}
+              >
+                <Trash2 size={16} />
+                {isDeleting ? "Удаление..." : "Удалить"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* --- УВЕДОМЛЕНИЯ (TOASTS) --- */}
+      {createPortal(
+        <div className="toast-container">
+          {toasts.map((toast) => (
+            <div key={toast.id} className={`toast-item ${toast.type} ${toast.isLeaving ? 'leaving' : ''}`}>
+              {toast.type === 'error' ? (
+                <AlertTriangle className="toast-icon" size={20} />
+              ) : (
+                <CheckCircle className="toast-icon" size={20} />
+              )}
+              <div className="toast-content">
+                <h4 className="toast-title">{toast.title}</h4>
+                <p className="toast-message">{toast.message}</p>
+              </div>
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
       </div>
     </div>
   );

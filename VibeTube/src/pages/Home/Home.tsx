@@ -3,10 +3,9 @@ import { useAuth } from "../../app/providers/AuthProvider";
 import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import VideoCard from "../../components/VideoCard/VideoCard";
-import HomeSkeleton from "../../shared/Skeletons/HomeSkeleton.tsx"; // Убедись, что путь к файлу со скелетоном правильный!
+import HomeSkeleton from "../../shared/Skeletons/HomeSkeleton.tsx";
 import '../../styles/HomeStyle.css';
 
-// 1. Глобальные переменные живут в памяти браузера до нажатия F5
 let globalCachedVideos: any[] | null = null;
 let globalCacheKey: string = "";
 
@@ -20,10 +19,9 @@ const shuffleArray = (array: any[]) => {
 };
 
 export default function Home() {
-  const { user, loading: isAuthLoading } = useAuth(); // Переименовали loading для понятности
+  const { user, loading: isAuthLoading } = useAuth();
   const [videos, setVideos] = useState<any[]>([]);
-  
-  // Добавляем стейт для отслеживания загрузки видео
+
   const [isVideoLoading, setIsVideoLoading] = useState(true);
 
   const [searchParams] = useSearchParams();
@@ -32,13 +30,12 @@ export default function Home() {
 
   const fetchVideos = async () => {
     const currentKey = `${search}_${genreId}`;
-    
-    // Включаем скелетон перед началом загрузки
+
     setIsVideoLoading(true);
 
     if (globalCachedVideos && globalCacheKey === currentKey) {
       setVideos(globalCachedVideos);
-      setIsVideoLoading(false); // Выключаем скелетон
+      setIsVideoLoading(false);
       return; 
     }
 
@@ -87,22 +84,18 @@ export default function Home() {
 
       setVideos(finalVideos);
     }
-    
-    // Выключаем скелетон после того, как данные получены и стейт обновлен
+
     setIsVideoLoading(false);
   };
 
   useEffect(() => {
-    // Ждем, пока проверится авторизация, затем грузим видео
     if (!isAuthLoading) {
       fetchVideos();
     }
   }, [search, genreId, isAuthLoading, user]);
 
-  // Генерируем уникальный ключ для сетки (сохраняем логику анимаций при смене фильтров)
   const gridKey = `${search}_${genreId}`;
 
-  // Общий флаг загрузки: либо грузится профиль, либо грузятся видео
   const isLoading = isAuthLoading || isVideoLoading;
 
   if (!user && !isAuthLoading) return <p>Не авторизован</p>;
@@ -111,14 +104,13 @@ export default function Home() {
     <div className="home-page">
       <div className="video-grid" key={gridKey}>
         {isLoading 
-          ? /* Рендерим 8 скелетонов (можешь изменить число под свой дизайн), 
-               оборачивая их в .video-card, чтобы на них тоже работала твоя CSS-анимация появления */
+          ? 
             Array.from({ length: 6 }).map((_, index) => (
               <div className="video-card" key={`skeleton-${index}`}>
                 <HomeSkeleton />
               </div>
             ))
-          : /* Рендерим реальные видео, когда загрузка завершена */
+          : 
             videos.map((video) => (
               <VideoCard key={video.id} video={video}/>
             ))

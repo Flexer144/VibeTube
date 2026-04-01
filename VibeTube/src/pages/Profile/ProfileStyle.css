@@ -322,3 +322,175 @@
   margin-top: 80px;
 }
 
+
+/* --- Кнопка удаления поверх карточки видео --- */
+.video-card-wrapper {
+  position: relative;
+  display: block;
+}
+
+.delete-video-btn-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a1a1aa;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.delete-video-btn-overlay:hover {
+  background: rgba(239, 68, 68, 0.9); /* Красный цвет при наведении */
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* --- Модальное окно подтверждения (Glass-эффект) --- */
+.delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px) brightness(0.6); /* Сильное затемнение + glass-эффект */
+  -webkit-backdrop-filter: blur(16px) brightness(0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  opacity: 0;
+  animation: fadeIn 0.3s forwards;
+}
+
+.delete-modal-content {
+  background: rgba(17, 17, 11, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transform: translateY(20px);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.delete-modal-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.delete-modal-subtitle {
+  color: #a1a1aa;
+  font-size: 14px;
+  margin: 0 0 24px 0;
+}
+
+.delete-modal-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #3f3f3f;
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #ffffff;
+  font-size: 15px;
+  outline: none;
+  margin-bottom: 24px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.delete-modal-input:focus {
+  border-color: #6365F1;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.modal-btn.cancel {
+  background: #272727;
+  color: #ffffff;
+}
+
+.modal-btn.cancel:hover {
+  background: #3f3f3f;
+}
+
+.modal-btn.delete {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.modal-btn.delete:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.modal-btn.delete:disabled {
+  background: #272727;
+  color: #71717a;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  to { transform: translateY(0); }
+}
+
+/* --- Варианты Уведомлений (Toast) --- */
+/* Твои базовые стили .toast-item остаются, мы добавляем модификаторы */
+
+.toast-item.error {
+  border-color: #ef4444;
+  background: rgba(17, 17, 11, 0.95);
+}
+
+.toast-item.error .toast-icon {
+  color: #ef4444;
+}
+
+.toast-item.success {
+  border-color: #22c55e;
+  background: rgba(17, 17, 11, 0.95);
+}
+
+.toast-item.success .toast-icon {
+  color: #22c55e;
+}

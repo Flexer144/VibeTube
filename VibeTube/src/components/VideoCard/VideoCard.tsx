@@ -10,7 +10,7 @@ type VideoCardProps = {
 
 export default function VideoCard({ video }: VideoCardProps) {
   const navigate = useNavigate();
-  const [isHovered, setIsHovered] = useState(false); // Для мгновенного свечения
+  const [isHovered, setIsHovered] = useState(false);
   const [shouldPlay, setShouldPlay] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -20,14 +20,14 @@ export default function VideoCard({ video }: VideoCardProps) {
   const thumbnailUrl = video.thumbnail_url || "/placeholder.jpg";
 
   const handleMouseEnter = () => {
-    setIsHovered(true); // Включаем свечение сразу
+    setIsHovered(true); 
     timerRef.current = setTimeout(() => {
       setShouldPlay(true);
-    }, 1000); // Видео запускается через секунду
+    }, 1000); 
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false); // Выключаем свечение сразу
+    setIsHovered(false);
     if (timerRef.current) clearTimeout(timerRef.current);
     setShouldPlay(false);
     setIsVideoLoaded(false);
@@ -40,16 +40,14 @@ export default function VideoCard({ video }: VideoCardProps) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* --- МАГИЧЕСКИЙ СЛОЙ (Ambient Glow) --- */}
+
       <div 
         className={`ambient-glow ${isHovered ? "active" : ""}`}
         style={{ backgroundImage: `url(${thumbnailUrl})` }}
       />
 
-      {/* Обертка контента, чтобы он был поверх свечения */}
       <div className="video-card-inner">
         
-        {/* 1. ПРЕВЬЮ БЛОК */}
         <div className="thumbnail-wrapper">
           <img
             src={thumbnailUrl}
@@ -75,7 +73,6 @@ export default function VideoCard({ video }: VideoCardProps) {
           )}
         </div>
 
-        {/* 2. ИНФО БЛОК */}
         <div className="video-info-container">
           <img
             src={avatar || `https://ui-avatars.com/api/?name=${username}`}

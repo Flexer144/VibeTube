@@ -401,7 +401,7 @@
   position: fixed;
   bottom: 30px;
   left: 20px;
-  z-index: 9999;
+  z-index: 10001;
   display: flex;
   flex-direction: column;
   gap: 12px;
