@@ -31,10 +31,9 @@ export default function Search() {
     const fetchSuggestions = async () => {
       if (query.trim().length < 2) return;
 
-      // Ищем подсказки и в видео, и в жанрах (делаем два быстрых запроса параллельно)
       const [videoRes, genreRes] = await Promise.all([
-        supabase.from("videos").select("title").ilike("title", `%${query}%`).limit(3),
-        supabase.from("genres").select("name").ilike("name", `%${query}%`).limit(2)
+        supabase.from("videos").select("title").ilike("title", `%${query.trim()}%`).limit(3),
+        supabase.from("genres").select("name").ilike("name", `%${query.trim()}%`).limit(2)
       ]);
 
       const videoHints = videoRes.data?.map(v => ({ title: v.title, type: 'video' })) || [];
@@ -53,16 +52,17 @@ export default function Search() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Обработчик отправки формы (нажатие Enter или кнопки лупы)
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    
-    setShowDropdown(false); // Прячем подсказки при поиске
-    navigate(`/search?q=${query}`);
-    setQuery('')
-  };
+  e.preventDefault();
+  
+  const cleanQuery = query.trim().replace(/\s+/g, ' ');
 
+  if (!cleanQuery) return;
+  
+  setShowDropdown(false);
+  navigate(`/search?q=${cleanQuery}`);
+  setQuery('');
+};
   // Обработчик клика по конкретной подсказке из списка
   const handleSuggestionClick = (title: string) => {
     setQuery(title);

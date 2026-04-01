@@ -1,58 +1,116 @@
 /* pageUpload.css */
 :root {
-  --pu-bg: #0b0909;
-  --pu-card-bg: #18181b;
-  --pu-border: #39393d;
-  --pu-primary: #8324ff;
-  --pu-primary-hover: #7517f0;
-  --pu-text: #d8d8d8;
-  --pu-text-muted: #cccccc;
-  --pu-radius: 8px;
+  --pu-bg: #0f0f0f; /* Твой основной темный цвет */
+  --pu-card-bg: rgba(255, 255, 255, 0.03);
+  --pu-border: rgba(255, 255, 255, 0.08);
+  --pu-primary: #6365f1; /* Твой фирменный индиго */
+  --pu-primary-hover: #5456d6;
+  --pu-secondary: #313169; /* Дополнительный темный сине-фиолетовый */
+  --pu-text: #ffffff;
+  --pu-text-muted: #a1a1aa;
+  --pu-radius: 10px;
 }
 
-/* ===== Видео-фон ===== */
-.auth-video {
-  position: fixed;
-  inset: 0;
+/* ===== Общая обертка страницы ===== */
+.upload-page-wrapper {
+  position: relative;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: -2;
+  min-height: calc(100vh - 80px); /* Примерный вычет высоты хедера */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: var(--pu-bg);
+  overflow: hidden;
+  z-index: 1;
+
+
+  /* --- УЛУЧШЕННЫЙ БЛЕНД (СЛЕВА И СВЕРХУ) --- */
+  /* Первая маска — для плавности слева (от сайдбара) */
+  /* Вторая маска — для плавности сверху (от хедера) */
+  -webkit-mask-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 15%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 10%);
+  
+  /* Магическая строка, которая заставляет обе маски работать вместе (пересекаться) */
+  -webkit-mask-composite: source-in; /* Для старых браузеров */
+  mask-composite: intersect;        /* Стандарт */
+  
+  /* Для Firefox и Safari иногда нужно дублировать без префиксов */
+  mask-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 15%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 10%);
 }
 
-/* ===== Затемнение ===== */
-.auth-overlay {
+/* ===== Анимированные неоновые пятна (Wow-эффект) ===== */
+.glow-blob {
   position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.267);
+  border-radius: 50%;
+  filter: blur(180px);
   z-index: -1;
+  opacity: 0.6;
+  animation: float 10s infinite ease-in-out alternate;
 }
 
+.blob-1 {
+  width: 500px;
+  height: 400px;
+  background: var(--pu-primary);
+  top: -10%;
+  left: -10%;
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  width: 500px;
+  height: 500px;
+  background: var(--pu-secondary);
+  bottom: -20%;
+  right: -10%;
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: rgba(99, 101, 241, 0.3);
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-duration: 15s;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, -50px) scale(1.1); }
+}
+
+/* ===== Основная карточка (Glassmorphism) ===== */
 .upload-card {
   width: 100%;
-  max-width: 600px;
-  padding: 32px;
-  border-radius: 20px;
-  margin: 0 auto;
-  margin-top: 150px;
+  max-width: 650px;
+  padding: 40px;
+  border-radius: 24px;
+  
+  /* Эффект матового стекла */
+  background: var(--pu-card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--pu-border);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
-  font-family: sans-serif;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-
-  color: #fff;
+  color: var(--pu-text);
+  font-family: inherit;
 }
-
 
 .upload-title {
   text-align: center;
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 30px;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* --- STEPPER (Шапка с шагами) --- */
@@ -61,15 +119,15 @@
   justify-content: space-between;
   position: relative;
   margin-bottom: 40px;
+  padding: 0 20px;
 }
 
 .stepper-wrapper::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 17px;
-  right: 15px;
-  transform: translateY(-50%);
+  top: 18px;
+  left: 40px;
+  right: 40px;
   height: 2px;
   background-color: var(--pu-border);
   z-index: 0;
@@ -78,216 +136,259 @@
 .step-item {
   position: relative;
   z-index: 1;
-
-  padding: 0 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .step-circle {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background-color: var(--pu-card-bg);
+  background-color: var(--pu-bg);
   border: 2px solid var(--pu-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 14px;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--pu-text-muted);
 }
 
 .step-item.active .step-circle {
-  border-color: var(--pu-primary);
-  color: var(--pu-primary);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: #6365f1;
+  color: #fff;
+  background-color: var(--pu-bg);
+  box-shadow: 0 0 20px rgba(99, 101, 241, 0.4);
 }
 
 .step-item.completed .step-circle {
-  background-color: var(--pu-primary);
-  border-color: var(--pu-primary);
+  background-color: #6365f1;
+  border-color: #6365f1;
   color: white;
 }
 
 .step-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--pu-text-muted);
   font-weight: 500;
+  transition: color 0.3s;
 }
 
-.step-item.active .step-label {
+.step-item.active .step-label,
+.step-item.completed .step-label {
   color: var(--pu-text);
 }
 
 /* --- FORM CONTENT --- */
 .step-content {
-  border-radius: var(--pu-radius);
-  padding: 0px;
-  min-height: 300px;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  animation: fadeIn 0.3s ease-in-out;
+  gap: 24px;
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
 /* Inputs styling */
+.pu-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pu-text-muted);
+}
+
 .pu-input, .pu-textarea {
   width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--pu-border);
   border-radius: var(--pu-radius);
-  padding: 10px 12px;
+  padding: 14px 16px;
   color: var(--pu-text);
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 .pu-input:focus, .pu-textarea:focus {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: var(--pu-primary);
+  background: rgba(0, 0, 0, 0.4);
+  border-color: #6365f1;
+  box-shadow: 0 0 0 3px rgba(99, 101, 241, 0.15);
 }
-.pu-input::placeholder, .pu-textarea::placeholder{
-  color: rgba(255, 255, 255, 0.603);
-  font-family: sans-serif;
+
+.pu-input::placeholder, .pu-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .pu-textarea {
-  min-height: 100px;
+  min-height: 120px;
   resize: vertical;
-}
 
-.pu-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--pu-text);
-}
+  &::-webkit-scrollbar {
+    width: 6px; 
+  }
 
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px; 
+    border: none; 
+  }
+  scrollbar-width: thin; 
+  scrollbar-color: #6365f1 transparent;
+}
 /* --- DROPZONE (Загрузка файлов) --- */
 .dropzone {
-  border: 2px dashed #626264;
+  border: 2px dashed var(--pu-border);
   border-radius: var(--pu-radius);
-  padding: 40px 20px;
+  padding: 50px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
-  background-color: rgba(255, 255, 255, 0.02);
+  transition: all 0.3s ease;
+  background-color: rgba(0, 0, 0, 0.1);
   height: 100%;
-  min-height: 200px;
+  min-height: 240px;
 }
 
 .dropzone:hover {
-  border-color: var(--pu-primary);
-  background-color: rgba(59, 130, 246, 0.05);
+  border-color: #6365f1;
+  background-color: rgba(99, 101, 241, 0.05);
 }
 
 .dropzone-icon {
   color: var(--pu-text-muted);
-  margin-bottom: 12px;
-  transition: color 0.2s;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
 }
 
 .dropzone:hover .dropzone-icon {
-  color: var(--pu-primary);
+  color: #6365f1;
+  transform: translateY(-5px);
 }
 
 .dropzone-text {
-  font-size: 14px;
-  padding-bottom: 10px;
+  font-size: 15px;
+  padding-bottom: 8px;
   color: var(--pu-text-muted);
 }
 
 .dropzone-text strong {
-  color: var(--pu-primary);
-  font-weight: 500;
+  color: #fff;
+  font-weight: 600;
 }
 
 .file-preview {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  animation: fadeIn 0.3s ease;
 }
 
 .file-name {
   font-size: 14px;
-  color: var(--pu-text);
-  background: #2c013d6b;
-  padding: 4px 8px;
-  border-radius: 4px;
+  color: #fff;
+  background: var(--pu-secondary);
+  padding: 6px 12px;
+  border-radius: 8px;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- PROGRESS BAR --- */
+.progress-container {
+  margin-top: 30px;
+  text-align: center;
+  animation: fadeIn 0.4s ease;
+}
+
+.progress-text {
+  font-size: 14px;
+  color: var(--pu-text-muted);
+  margin-bottom: 12px;
+}
+
+.progress-text span {
+  color: var(--pu-primary);
+  font-weight: bold;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--pu-border);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pu-secondary), var(--pu-primary));
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(99, 101, 241, 0.5);
 }
 
 /* --- FOOTER (Кнопки) --- */
 .step-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 24px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--pu-border);
 }
 
 .btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  border-radius: var(--pu-radius);
+  padding: 12px 24px;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .btn-secondary {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--pu-border);
   color: var(--pu-text);
 }
-.btn-secondary:hover {background-color: var(--pu-border);
-}
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .btn-primary {
-  background-color: var(--pu-primary);
+  background-color: #4d50da;
   color: white;
-}
-.btn-primary:hover {
-  background-color: var(--pu-primary-hover);
-}
-.btn-primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+  box-shadow: 0 4px 15px rgba(99, 101, 241, 0.3);
 }
 
-/* --- PROGRESS BAR --- */
-.progress-container {
-  margin-top: 20px;
-  text-align: center;
+.btn-primary:hover:not(:disabled) {
+  background-color: #6365f1;
+  box-shadow: 0 6px 20px rgba(99, 101, 241, 0.4);
 }
-.progress-bar-bg {
-  width: 100%;
-  height: 6px;
-  background-color: var(--pu-border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: 8px;
-}
-.progress-bar-fill {
-  height: 100%;
-  background-color: var(--pu-primary);
-  transition: width 0.3s ease;
+
+.btn-secondary:disabled, .btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  z-index: 10;
 }
 
 @keyframes fadeIn {
@@ -295,3 +396,70 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* --- Стили уведомлений (Toast) --- */
+.toast-container {
+  position: fixed;
+  bottom: 30px;
+  left: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.toast-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 320px;
+  max-width: 450px;
+  padding: 16px 20px;
+  background: #11110b; 
+  border: 1px solid #7d5711; 
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  
+  animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-item.leaving {
+  animation: slideOutLeft 0.5s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.toast-icon {
+  color: #facc15;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toast-title {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.toast-message {
+  color: #a1a1aa;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutLeft {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-120%); opacity: 0; }
+}

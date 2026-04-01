@@ -59,11 +59,12 @@ export default function VideoCard({ video }: VideoCardProps) {
 
           {shouldPlay && video.video_url && (
             <video
-              src={video.video_url}
+              src={`${video.video_url}#t=0.1,4`} 
               autoPlay
               muted
               loop
               playsInline
+              preload="metadata"
               onCanPlayThrough={() => setIsVideoLoaded(true)}
               className={`video-preview-overlay ${isVideoLoaded ? 'visible' : ''}`}
             />

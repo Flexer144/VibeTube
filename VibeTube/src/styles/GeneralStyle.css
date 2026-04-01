@@ -1,4 +1,8 @@
-
+:root {
+  --cl-base: #6365F1; /* Стандартный красный YouTube */
+  --cl-accent: #7b7dec;
+  --bg-blur: #6d6fec3b; 
+}
 
 body::-webkit-scrollbar {
   width: 6px;
@@ -28,4 +32,20 @@ html{
     background-color: rgb(15, 15, 15);
     color: white;
     font-family: Arial, Helvetica, sans-serif;
+}
+html::selection { color: white; background-color: rgb(99, 101, 241); }
+
+#nprogress .bar {
+    background: #ff5733 !important; /* Замените на ваш цвет */
+}
+
+/* Цвет "свечения" на кончике линии */
+#nprogress .peg {
+    box-shadow: 0 0 10px #ff5733, 0 0 5px #ff5733 !important;
+}
+
+/* Цвет крутящегося спиннера (если он есть) */
+#nprogress .spinner-icon {
+    border-top-color: #ff5733 !important;
+    border-left-color: #ff5733 !important;
 }

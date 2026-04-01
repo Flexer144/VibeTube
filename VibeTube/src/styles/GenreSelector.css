@@ -8,8 +8,8 @@
   --gs-text: #e4e4e7;     /* Основной текст */
   --gs-muted: #a1a1aa;    /* Серый текст */
   --gs-primary: #3b82f6;  /* Цвет галочки (синий) */
-  --gs-radius: 8px;       /* Закругление углов */
-  --pu-primary: #8324ff;
+  --gs-radius: 10px;       /* Закругление углов */
+  --pu-primary: #6365f1;
 }
 
 /* Контейнер всего компонента */
@@ -23,9 +23,9 @@
 /* Основное поле ввода (триггер) */
 .gs-trigger {
   min-height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--gs-radius);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--pu-border);
+  border-radius: var(--pu-radius);
   padding: 4px 8px;
   display: flex;
   align-items: center;
@@ -55,7 +55,7 @@
 /* Отдельный тег (Badge) */
 .gs-tag {
   background-color: #24242441; /* Чуть светлее фона */
-  border: 1px solid #818181d0;
+  border: 1px solid #6365f1;
   border-radius: 4px;
   padding: 2px 6px;
   display: flex;
@@ -97,12 +97,27 @@
   left: 0;
   width: 100%;
   background-color: var(--gs-bg);
-  border: 1px solid var(--gs-border);
-  border-radius: var(--gs-radius);
-  z-index: 50;
+  border: 1px solid var(--pu-border);
+  border-radius: var(--pu-radius);
+  z-index: 100;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   animation: fadeIn 0.1s ease-out;
+  &::-webkit-scrollbar {
+    width: 6px; 
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px; 
+    border: none; 
+  }
+  scrollbar-width: thin; 
+  scrollbar-color: #6365f1 transparent;
 }
 
 /* Поле поиска внутри списка */

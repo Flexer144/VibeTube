@@ -5,10 +5,12 @@ import { useAuth } from "../../app/providers/AuthProvider";
 import VideoCard from "../../components/VideoCard/VideoCard";
 import Carousel from "../../components/Carousel/Carousel"; 
 import AvatarUpload from "../Upload/UploadAvatar";
-// Добавь это к остальным импортам в Profile.tsx
 import { SubscribeButton } from "../../components/Button/SubscribeButton";
-import "./ProfileStyle.css"; // Сюда нужно добавить стили для анимации
+import "./ProfileStyle.css"; 
 import { pluralize } from "../../shared/lib/pluralize";
+
+// 1. Импортируем наш новый компонент-скелетон
+import ProfileSkeleton from "../../shared/Skeletons/ProfileSkeleton.tsx";
 
 export default function Profile() {
   const { id: channelId } = useParams();
@@ -102,10 +104,10 @@ export default function Profile() {
     }
   };
 
-  if (loading) return <p style={{ textAlign: "center", marginTop: 50 }}>Загрузка...</p>;
+  // 2. ЗАМЕНЯЕМ СТАРУЮ СТРОКУ ЗАГРУЗКИ НА НАШ СКЕЛЕТОН
+ if (loading) return <ProfileSkeleton />;
+
   if (!profileData) return <p style={{ textAlign: "center", marginTop: 50 }}>Канал не найден</p>;
-  console.log(likedVideos)
-   console.log(videos)
 
   return (
     <div className="profile-container">
@@ -119,7 +121,6 @@ export default function Profile() {
           <div className="bg-orb move-perimeter orb-edge-2"></div>
         </div>
 
-        {/* ШАПКА ТЕПЕРЬ ВНУТРИ БАННЕРА */}
         <div className="profile-header">
           {isOwnProfile ? (
             <AvatarUpload 
@@ -155,7 +156,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* --- НИЖНИЙ КОНТЕНТ (ИСТОРИЯ, ЛАЙКИ, ВИДЕО) --- */}
       <div className="profile-content-body">
         {isOwnProfile && historyVideos.length > 0 && (
           <div style={{ marginBottom: 32 }}>

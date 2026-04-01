@@ -3,7 +3,7 @@ import { supabase } from "../../shared/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import '../../pages/Upload/Style/pageUpload.css';
 import GenreSelector from "./ComponentsUpload/GenreSelector";
-import BgLogin from "../../assets/background/output4.mp4";
+import Portal from "../../shared/ui/Portal"; // <--- ИМПОРТИРОВАТЬ ПОРТАЛ
 
 import { 
   ChevronRight, 
@@ -12,7 +12,8 @@ import {
   Image as ImageIcon, 
   FileVideo, 
   Check, 
-  Loader2 
+  Loader2,
+  AlertTriangle
 } from "lucide-react";
 
 const formatDuration = (seconds: number) => {
@@ -44,6 +45,9 @@ export default function Upload() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  // Состояние для уведомлений (toasts)
+  const [toasts, setToasts] = useState<{id: number, message: string, isLeaving?: boolean}[]>([]);
+
   // Рефы для скрытых инпутов файлов
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -70,24 +74,38 @@ export default function Upload() {
   video.src = URL.createObjectURL(file);
 };
 
-  // --- Логика переключения шагов ---
+  // --- Функция для запуска уведомления ---
+  const triggerToast = (message: string) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message }]);
+
+    // Запускаем анимацию ухода через 4 секунды
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, isLeaving: true } : t));
+    }, 4000);
+
+    // Полностью удаляем из DOM через 4.5 секунды
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4500);
+  };
+
+  // --- Логика переключения шагов (Заменили алерты) ---
   const handleNext = () => {
-    // Валидация шага 1
     if (currentStep === 1) {
-      if (!title.trim()) return alert("Введите название видео");
-      if (!description.trim()) return alert("Введите описание");
-      if (selectedGenres.length === 0) return alert("Выберите хотя бы один жанр");
+      if (!title.trim()) return triggerToast("Вы забыли ввести название видео");
+      if (!description.trim()) return triggerToast("Поле описания не заполнено");
+      if (selectedGenres.length === 0) return triggerToast("Выберите хотя бы один жанр");
     }
     
-    // Валидация шага 2
     if (currentStep === 2) {
-      if (!thumbnailFile) return alert("Загрузите превью");
+      if (!thumbnailFile) return triggerToast("Загрузите превью для вашего видео");
     }
 
     if (currentStep < 3) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      handleUpload(); // Если это 3-й шаг - загружаем
+      handleUpload();
     }
   };
 
@@ -100,12 +118,11 @@ export default function Upload() {
 // ================= ОСНОВНАЯ ЗАГРУЗКА =================
   const handleUpload = async () => {
     if (!videoFile || !thumbnailFile || !title) {
-      alert("Заполни все поля");
-      return;
+      return triggerToast("Заполни все поля");
     }
 
     setLoading(true);
-    setProgress(10); // Начинаем прогресс
+    setProgress(10); 
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -116,16 +133,13 @@ export default function Upload() {
       const videoPath = `${user.id}/${Date.now()}.${videoExt}`;
       const thumbnailPath = `${user.id}/${Date.now()}_thumb.${thumbExt}`;
 
-      // 1. Загрузка превью
       setProgress(20);
       const { error: thumbError } = await supabase.storage
         .from("thumbnails")
         .upload(thumbnailPath, thumbnailFile);
       
       if (thumbError) throw thumbError;
-
-      // 2. Загрузка видео 
-      // (Имитируем движение прогресса, пока идет тяжелая загрузка)
+      setProgress(52);
       const progressInterval = setInterval(() => {
         setProgress((prev) => (prev < 90 ? prev + 5 : prev));
       }, 500);
@@ -139,11 +153,9 @@ export default function Upload() {
 
       setProgress(95);
 
-      // 3. Получаем ссылки
       const { data: videoUrl } = supabase.storage.from("videos").getPublicUrl(videoPath);
       const { data: thumbUrl } = supabase.storage.from("thumbnails").getPublicUrl(thumbnailPath);
 
-      // 4. Создаём запись в БД
       const { data: insertedVideo, error: insertError } = await supabase
       .from("videos")
       .insert({
@@ -159,7 +171,6 @@ export default function Upload() {
 
       if (insertError) throw insertError;
 
-      // 5. Сохраняем жанры
       if (selectedGenres.length > 0) {
         await supabase.from("video_genres").insert(
           selectedGenres.map((genreId) => ({
@@ -175,14 +186,12 @@ export default function Upload() {
 
     } catch (err: any) {
       console.error("FULL ERROR:", err);
-      // Если ошибка 400, выводим детали
-      alert(`Ошибка: ${err.message || "400 Bad Request"}`);
+      return triggerToast(`Ошибка: ${err.message || "400 Bad Request"}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Рендер контента по шагам ---
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -234,7 +243,7 @@ export default function Upload() {
               />
               {thumbnailFile ? (
                 <div className="file-preview">
-                  <ImageIcon size={48} className="text-blue-500" />
+                  <ImageIcon size={48} className="text-indigo-500" />
                   <span className="file-name">{thumbnailFile.name}</span>
                   <p className="text-sm text-green-500 mt-2">Файл выбран</p>
                 </div>
@@ -256,8 +265,8 @@ export default function Upload() {
              <label className="pu-label">Загрузка видео файла</label>
              {loading ? (
                 <div className="progress-container">
-                  <Loader2 className="animate-spin mx-auto mb-4 text-blue-500" size={40}/>
-                  <p>Загрузка видео на сервер... {progress}%</p>
+                  <Loader2 className="vibe-spinner" size={48} color="#ffffff" />
+                  <p className="progress-text">Загрузка видео на сервер... <span>{progress}%</span></p>
                   <div className="progress-bar-bg">
                     <div 
                       className="progress-bar-fill" 
@@ -275,11 +284,11 @@ export default function Upload() {
                 accept="video/*"
                 hidden
                 ref={videoInputRef}
-                onChange={(e) => handleVideoChange(e.target.files?.[0] || null)} // <--- ПОМЕНЯЛИ ЗДЕСЬ
+                onChange={(e) => handleVideoChange(e.target.files?.[0] || null)}
               />
                  {videoFile ? (
                   <div className="file-preview">
-                    <FileVideo size={48} className="text-blue-500" />
+                    <FileVideo size={48} className="text-indigo-500" />
                     <span className="file-name">{videoFile.name}</span>
                     <p className="text-sm text-green-500 mt-2">Видео готово к загрузке</p>
                   </div>
@@ -289,7 +298,7 @@ export default function Upload() {
                     <p className="dropzone-text">
                       <strong>Нажмите для выбора видео</strong>
                     </p>
-                    <p className="text-xs text-gray-500 mt-2">MP4, WebM</p>
+                    <p className="text-xs text-gray-500 mt-2">MP4, WebM до 50MB</p>
                   </>
                 )}
               </div>
@@ -302,17 +311,15 @@ export default function Upload() {
   };
 
   return (
-    <>
-      <video className="auth-video" autoPlay muted loop playsInline>
-        <source src={BgLogin} type="video/mp4" />
-      </video>
-
-      <div className="auth-overlay" />
+    <div className="upload-page-wrapper">
+      {/* Анимированные световые пятна на фоне */}
+      <div className="glow-blob blob-1"></div>
+      <div className="glow-blob blob-2"></div>
+      <div className="glow-blob blob-3"></div>
 
       <div className="upload-card">
         <h2 className="upload-title">Новое видео</h2>
 
-        {/* --- Stepper Header --- */}
         <div className="stepper-wrapper">
           {[1, 2, 3].map((step) => (
             <div 
@@ -329,12 +336,10 @@ export default function Upload() {
           ))}
         </div>
 
-        {/* --- Main Content --- */}
         <div className="step-content">
           {renderStepContent()}
         </div>
 
-        {/* --- Footer Actions --- */}
         <div className="step-actions">
           <button 
             className="btn btn-secondary"
@@ -354,6 +359,21 @@ export default function Upload() {
           </button>
         </div>
       </div>
-    </>
+
+      {/* --- Контейнер для уведомлений, теперь обернутый в Portal --- */}
+      <Portal>
+        <div className="toast-container">
+          {toasts.map((toast) => (
+            <div key={toast.id} className={`toast-item ${toast.isLeaving ? 'leaving' : ''}`}>
+              <AlertTriangle className="toast-icon" size={20} />
+              <div className="toast-content">
+                <h4 className="toast-title">Предупреждение! Что-то пошло не так</h4>
+                <p className="toast-message">{toast.message}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Portal>
+    </div>
   );
 }

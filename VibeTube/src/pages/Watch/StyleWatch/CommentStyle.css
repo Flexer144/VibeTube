@@ -1,0 +1,300 @@
+/* =========================================
+   ОБЩИЙ БЛОК КОММЕНТАРИЕВ (CommentList)
+========================================= */
+.comments-section-wrapper {
+  margin-top: 24px;
+  color: #f1f1f1;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.comments-header-row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+
+.comments-count {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.comments-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.comments-sort-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* =========================================
+   ФОРМА КОММЕНТАРИЯ (CommentForm)
+========================================= */
+.comment-form-container {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  align-items: flex-start;
+}
+
+.reply-form {
+  margin-bottom: 16px;
+  margin-top: 8px;
+}
+
+.comment-input-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-textarea {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f1f1;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  padding: 4px 0;
+  min-height: 24px;
+  overflow: hidden;
+  font-family: inherit;
+  transition: border-bottom-color 0.2s;
+}
+
+/* Анимированная линия при фокусе */
+.comment-input-underline {
+  height: 2px;
+  background-color: #f1f1f1;
+  width: 0;
+  transition: width 0.3s ease;
+  margin-top: -1px;
+}
+
+.comment-input-underline.active {
+  width: 100%;
+}
+
+.comment-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.comment-cancel-btn, .comment-submit-btn {
+  padding: 8px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.comment-cancel-btn {
+  background: transparent;
+  color: #f1f1f1;
+}
+
+.comment-cancel-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.comment-submit-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #717171;
+  cursor: default;
+}
+
+.comment-submit-btn.active {
+  background-color: var(--cl-base);
+  color: white;
+  cursor: pointer;
+}
+
+.comment-submit-btn.active:hover {
+  background-color: var(--cl-accent);
+}
+
+.comment-login-prompt {
+  padding: 16px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  text-align: center;
+  margin-bottom: 24px;
+  color: #aaa;
+}
+
+/* =========================================
+   САМ КОММЕНТАРИЙ (CommentItem)
+========================================= */
+.comment-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  font-family: 'Roboto', Arial, sans-serif;
+  color: #f1f1f1;
+}
+
+.comment-avatar-container {
+  flex-shrink: 0;
+}
+
+/* Аватарка в списке комментариев */
+.comment-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.comment-content-container {
+  flex: 1;
+  min-width: 0; /* Важно: не дает длинному тексту ломать flex-контейнер */
+}
+
+/* --- Шапка (Имя и время) --- */
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.comment-author-name {
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #aaa;
+}
+
+/* --- Текст комментария --- */
+.comment-text {
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  white-space: pre-wrap; /* Сохраняем переносы строк (Enter) из базы */
+  word-wrap: break-word; /* Переносим длинные слова без пробелов */
+}
+
+/* =========================================
+   ПАНЕЛЬ ДЕЙСТВИЙ (Лайк, Дизлайк, Ответить)
+========================================= */
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* Расстояние между кнопками */
+}
+
+/* Кнопки лайка и дизлайка */
+.comment-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #f1f1f1;
+  font-size: 12px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%; /* При наведении будет круглый фон */
+  transition: background-color 0.2s;
+}
+
+/* Если у лайка есть цифра, делаем кнопку шире (не круглой, а овальной) */
+.comment-action-btn:has(.action-count) {
+  width: auto;
+  padding: 0 10px;
+  border-radius: 16px;
+}
+
+.comment-action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.action-count {
+  color: #aaa;
+}
+
+/* Кнопка "Ответить" */
+.comment-reply-btn {
+  background: transparent;
+  border: none;
+  color: #f1f1f1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 16px;
+  margin-left: 8px;
+  transition: background-color 0.2s;
+}
+
+.comment-reply-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* =========================================
+   ВЕТКИ ОТВЕТОВ (Replies)
+========================================= */
+.comment-replies-toggle {
+  margin-top: 4px;
+}
+
+/* Кнопка "Показать X ответов" с шевроном */
+.show-replies-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--cl-base); /* Характерный синий цвет ютуба */
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 16px;
+  border-radius: 16px;
+  transition: background-color 0.2s;
+}
+.main-form {
+  margin-bottom: 32px; /* Расстояние от формы до первого комментария */
+  margin-top: 8px;    /* Расстояние от заголовка до формы */
+}
+
+.show-replies-btn:hover {
+  background-color: var(--bg-blur);
+}
+
+/* Контейнер для вложенных комментариев */
+.comment-replies-list {
+  margin-top: 12px;
+}
+
+/* Делаем аватарки во вложенных ответах чуть меньше, чтобы визуально выделить иерархию */
+.comment-replies-list .comment-user-avatar {
+  width: 24px;
+  height: 24px;
+}
+
+.comment-replies-list .comment-item {
+  margin-bottom: 12px;
+  gap: 12px; /* Чуть меньше расстояние между маленькой аватаркой и текстом */
+}

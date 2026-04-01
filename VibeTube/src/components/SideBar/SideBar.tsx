@@ -1,21 +1,34 @@
-import { Home, Compass, PlaySquare, Clock, ThumbsUp, History, ListVideo } from "lucide-react";
+import { Home, Compass, PlaySquare, ThumbsUp, History, ListVideo } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import './SideBarStyle.css';
 
-export default function SideBar({ isExpanded }: { isExpanded: boolean }) {
+export default function SideBar({ 
+    isExpanded, 
+    setExpanded 
+}: { 
+    isExpanded: boolean, 
+    setExpanded: (val: boolean) => void 
+}) {
     const location = useLocation();
     const navigate = useNavigate();
     const { user } = useAuth();
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
-    // Функция проверки активной ссылки
     const isActive = (path: string) => location.pathname === path ? "active" : "";
+    
+    const isWatchPage = location.pathname.startsWith('/video');
+    useEffect(() => {
+        if (isWatchPage && isExpanded) {
+            setExpanded(false);
+        } else if(!isWatchPage && !isExpanded){
+            setExpanded(true)
+        }
+    }, [isWatchPage]); 
 
     useEffect(() => {
-        // Грузим подписки только если юзер авторизован и сайдбар развернут
         if (user && isExpanded) {
             const fetchSubs = async () => {
                 const { data, error } = await supabase
@@ -32,8 +45,10 @@ export default function SideBar({ isExpanded }: { isExpanded: boolean }) {
     }, [user, isExpanded]);
 
     return (
-        // Переключаем классы в зависимости от состояния
-        <aside className={`side-bar ${isExpanded ? 'expanded' : 'collapsed'}`}>
+        <aside className={`side-bar 
+            ${isExpanded ? 'expanded' : 'collapsed'} 
+            ${isWatchPage ? 'overlay-mode' : 'standard-mode'}` 
+        }>
             
             <nav className="sidebar-nav">
                 <div className={`nav-item ${isActive("/")}`} onClick={() => navigate("/")}>
@@ -50,7 +65,6 @@ export default function SideBar({ isExpanded }: { isExpanded: boolean }) {
                 </div>
             </nav>
 
-            {/* Показываем нижние секции только если сайдбар развернут */}
             {isExpanded && (
                 <>
                     <div className="sidebar-divider" />
@@ -73,7 +87,6 @@ export default function SideBar({ isExpanded }: { isExpanded: boolean }) {
 
                     <div className="sidebar-divider" />
 
-                    {/* СЕКЦИЯ ПОДПИСОК */}
                     <nav className="sidebar-nav subs-list">
                         <div className="section-title">Подписки</div>
                         {subscriptions.map((sub: any) => (

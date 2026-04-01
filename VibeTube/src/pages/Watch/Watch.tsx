@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { useAuth } from "../../app/providers/AuthProvider"; 
 
@@ -23,7 +23,6 @@ export default function Watch() {
   const [recommended, setRecommended] = useState<any[]>([]);
   const [subscribersCount, setSubscribersCount] = useState<number>(0);
 
-  const viewTriggered = useRef(false);
 
   /* ===========================
      Загрузка видео
@@ -72,7 +71,6 @@ export default function Watch() {
 
     setVideo(data);
     setLoading(false);
-    viewTriggered.current = false;
   };
 
   /* ===========================
@@ -135,18 +133,25 @@ export default function Watch() {
   =========================== */
   useEffect(() => {
     if (!id || !video) return;
-    if (viewTriggered.current) return;
 
     const viewedKey = `viewed_${id}`;
     const alreadyViewed = sessionStorage.getItem(viewedKey);
 
     if (alreadyViewed) return;
 
-    viewTriggered.current = true;
+    // СРАЗУ ЖЕ записываем в sessionStorage, ДО отправки запроса!
+    // Это мгновенно блокирует второй вызов от React Strict Mode
+    sessionStorage.setItem(viewedKey, "true");
 
     const increment = async () => {
-      await supabase.rpc("increment_views", { video_id: id });
-      sessionStorage.setItem(viewedKey, "true");
+      const { error } = await supabase.rpc("increment_views", { video_id: id });
+      
+      // Если запрос почему-то упал (например, отпал интернет), 
+      // удаляем отметку, чтобы просмотр мог засчитаться при обновлении страницы
+      if (error) {
+        console.error("Ошибка при добавлении просмотра:", error);
+        sessionStorage.removeItem(viewedKey);
+      }
     };
 
     increment();
@@ -167,19 +172,15 @@ export default function Watch() {
     >
       {/* ЛЕВАЯ ЧАСТЬ */}
       <div style={{ flex: 3 }}>
-        <VideoPlayer url={video.video_url} />
+        <VideoPlayer 
+          url={video.video_url} 
+          thumbnailUrl={video.thumbnail_url} 
+        />
 
         <VideoInfo
           video={video}
           subscribersCount={subscribersCount}
-          onSubscriptionChange={fetchSubscribers} // 🔥 ВОТ ГЛАВНОЕ
-        />
-
-        <VideoActions videoId={video.id} />
-
-        <CommentForm
-          videoId={video.id}
-          onCommentAdded={refreshComments}
+          onSubscriptionChange={fetchSubscribers}
         />
 
         <CommentsList
@@ -189,46 +190,26 @@ export default function Watch() {
       </div>
 
       {/* ПРАВАЯ ЧАСТЬ — рекомендованные */}
-      <div style={{ flex: 1 }}>
+      <div className="recommended-list">
         {recommended.map((video) => (
           <div
             key={video.id}
-            style={{
-              display: "flex",
-              gap: 10,
-              marginBottom: 15,
-              cursor: "pointer"
-            }}
+            className="recommended-item"
             onClick={() => navigate(`/video/${video.id}`)}
           >
             <img
               src={video.thumbnail_url}
               alt={video.title}
-              style={{
-                width: 160,
-                height: 90,
-                objectFit: "cover",
-                borderRadius: 10
-              }}
+              className="recommended-thumbnail"
             />
 
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: 14,
-                  marginBottom: 4
-                }}
-              >
+            <div className="recommended-info">
+              <div className="recommended-title">
                 {video.title}
               </div>
 
               <div
-                style={{
-                  fontSize: 12,
-                  color: "#888",
-                  cursor: "pointer"
-                }}
+                className="recommended-author"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/channel/${video.profiles?.id}`);
@@ -237,12 +218,7 @@ export default function Watch() {
                 {video.profiles?.username}
               </div>
 
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "#888"
-                }}
-              >
+              <div className="recommended-stats">
                 {video.views} {pluralize(video.views, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
               </div>
             </div>

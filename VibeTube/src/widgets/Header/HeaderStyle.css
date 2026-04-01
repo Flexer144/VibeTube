@@ -1,13 +1,14 @@
 .header-wrapper {
-  background-color: rgba(15, 15, 15, 0.9); /* Dark transparent background like YT overlays */
-  backdrop-filter: blur(5px); /* Frosted glass effect for modern beauty (optional, remove if not supported) */
+  background-color: rgba(15, 15, 15, 0.89); 
+  backdrop-filter: blur(5px); 
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 10000;
   display: flex;
-  flex-direction: column; /* Делаем два уровня */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
-  transition: background-color 0.3s ease; /* Smooth transition on hover/scroll if needed */
+
+  flex-direction: column;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
+  transition: background-color 0.3s ease; 
 }
 
 .logo-text{
@@ -52,6 +53,7 @@
 .header-avatar{
  border: 2px solid rgb(77, 78, 161);
  padding: 2px;
+ object-fit: cover;
  transition: border 0.2s;
 }
 .header-avatar:hover{
@@ -72,6 +74,14 @@
   gap: 12px;
   overflow-x: auto;
   scrollbar-width: none;
+  transition: padding-left 0.3s ease;
+}
+.header-wrapper.sidebar-expanded .header-genres-scroll {
+  padding-left: 243px;
+}
+
+.header-wrapper.sidebar-collapsed .header-genres-scroll {
+  padding-left: 80px;
 }
 
 .header-genres-scroll::-webkit-scrollbar {
@@ -89,18 +99,69 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.2s ease, transform 0.2s ease; /* Добавил плавный зум для красоты */
+  user-select: none; 
+  -webkit-user-drag: none; 
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.genre-chip:first-child{
-  margin-left: 245px;
-}
 .genre-chip:hover, .upload-btn:hover {
   background-color: rgb(60, 61, 133);
 }
 .genre-chip.active {
   background-color: rgb(99, 101, 241);
   color: rgb(255, 255, 255);
+}
+
+.header-wrapper.sidebar-expanded {
+  --sidebar-offset: 250px;
+}
+
+.header-wrapper.sidebar-collapsed {
+  --sidebar-offset: 80px;
+}
+
+.genres-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  
+  /* Маска теперь учитывает --sidebar-offset */
+  /* Мы делаем прозрачным всё, что левее (offset - 50px), 
+     и плавно выводим в черный (видимый) к самому offset */
+  mask-image: linear-gradient(to right, 
+    transparent, 
+    transparent calc(var(--sidebar-offset) - 50px), 
+    black var(--sidebar-offset), 
+    black calc(100% - 70px), 
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to right, 
+    transparent, 
+    transparent calc(var(--sidebar-offset) - 50px), 
+    black var(--sidebar-offset), 
+    black calc(100% - 70px), 
+    transparent 100%
+  );
+}
+
+.header-genres-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  transition: padding-left 0.3s ease;
+  
+  /* Используем ту же переменную для паддинга */
+  padding-left: var(--sidebar-offset);
+  padding-right: 70px; /* Чтобы правый край тоже красиво затухал */
+  
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Если мышь нажата (драг), отключаем smooth скролл, чтобы не было задержки */
+.header-genres-scroll:active {
+  scroll-behavior: auto;
 }
 
 .menu-burger-btn { background: transparent; border: none; cursor: pointer; padding: 8px; display: flex; align-items: center; border-radius: 50%; } .menu-burger-btn:hover { background-color: rgba(255,255,255,0.1); }

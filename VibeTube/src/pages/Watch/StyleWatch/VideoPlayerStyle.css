@@ -1,12 +1,335 @@
-.video-player{
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background-color: black;
-    border-radius: 12px;
-    overflow: hidden;
+/* Переменные для удобства */
+:root {
+  --yt-red: #6d6fec; /* Стандартный красный YouTube */
+  --accent-color: #6365f1; /* Твой фиолетовый акцент */
+  --pill-bg: rgba(255, 255, 255, 0.15);
+  --pill-bg-hover: rgba(255, 255, 255, 0.25);
 }
-.video-player > video{
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+
+.video-player-root {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: black;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.video-player-root.hide-controls {
+  cursor: none;
+}
+.video-player-root.hide-controls {
+  cursor: none !important; /* Принудительно убираем курсор */
+}
+
+.video-player-root.hide-controls * {
+  cursor: none !important; /* И у всех дочерних элементов тоже */
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+/* =========================================
+   ОВЕРЛЕИ (ЦЕНТР И ВЕРХ)
+========================================= */
+.yt-overlay-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+  animation: yt-pulse 0.8s ease-out forwards;
+}
+
+@keyframes yt-pulse {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+
+.yt-overlay-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.yt-overlay-status span, .seek-badge {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 17px;
+  border-radius: 30px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  backdrop-filter: blur(4px);
+}
+.voulme-badge{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.voulme-badge p:first-child{
+    font-size: 25px;
+}
+
+/* =========================================
+   ПАНЕЛЬ УПРАВЛЕНИЯ
+========================================= */
+.yt-controls-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0 15px 15px 15px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  transition: opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.video-player-root.hide-controls .yt-controls-wrapper {
+  opacity: 0;
+}
+
+/* --- СКРУББЕР (ПРОГРЕСС-БАР) --- */
+.yt-scrubber {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  /* background теперь управляется из JS через linear-gradient */
+  transition: height 0.1s ease;
+}
+
+/* Красная полоска до текущего момента */
+.yt-scrubber::-webkit-slider-runnable-track {
+  border-radius: 2px;
+}
+.yt-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: var(--yt-red);
+  cursor: pointer;
+  margin-top: -1px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  transition: all 0.1s;
+}
+.yt-scrubber:hover::-webkit-slider-thumb{
+  height: 15px;
+  width: 15px;
+}
+
+/* --- КНОПКИ-ТАБЛЕТКИ --- */
+.yt-controls-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.yt-controls-left, .yt-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.yt-control-pill {
+  background: var(--pill-bg);
+  border: none;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 300px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s, transform 0.1s;
+}
+
+.yt-control-pill:hover {
+  background: var(--pill-bg-hover);
+}
+
+.yt-control-pill:active {
+  transform: scale(0.95);
+}
+
+/* --- БЛОК ГРОМКОСТИ --- */
+.yt-volume-block {
+  background: var(--pill-bg); /* Оставляем один общий фон таблетки */
+  border: none;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 300px;
+  max-width: 44px; /* Размер только для иконки */
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+}
+/* Убираем фон у самой кнопки внутри таблетки, чтобы не было "бутерброда" */
+.yt-volume-block button {
+  background: none;
+  border: none;
+  color: white;
+  display: flex;
+  padding: 0;
+  cursor: pointer;
+}
+
+.yt-volume-block:hover {
+  max-width: 160px; 
+  background: var(--pill-bg-hover);
+}
+
+.yt-volume-slider {
+  -webkit-appearance: none;
+  width: 0;
+  height: 4px;
+  border-radius: 10px;
+  outline: none;
+  opacity: 0;
+  transition: width 0.3s, opacity 0.3s;
+  cursor: pointer;
+}
+
+.yt-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #6365F1;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  border: none;
+  transition: transform 0.1s ease;
+}
+
+.yt-volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2); 
+}
+
+.yt-volume-slider::-moz-range-thumb {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #6365F1;
+  border: none;
+  cursor: pointer;
+}
+
+.yt-volume-block:hover .yt-volume-slider {
+  width: 80px;
+  opacity: 1;
+  margin-left: 8px;
+}
+
+/* --- МЕНЮ НАСТРОЕК --- */
+.yt-settings-container {
+  position: relative;
+}
+
+.yt-settings-menu {
+  position: absolute;
+  bottom: 50px;
+  right: 0;
+  background: rgba(28, 28, 28, 0.95);
+  border-radius: 12px;
+  width: 180px;
+  padding: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.settings-header {
+  padding: 8px;
+  font-size: 12px;
+  color: #aaa;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 4px;
+}
+
+.speed-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.speed-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.speed-item.active {
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+.rotating {
+  animation: rotate 0.5s ease-in-out;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(90deg); }
+}
+
+/* =========================================
+   VIBE LOAD СЛОЙ (GLASSMORPHISM)
+========================================= */
+.vibe-buffering-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05); /* Очень легкое осветление */
+  backdrop-filter: blur(12px); /* Эффект матового стекла */
+  -webkit-backdrop-filter: blur(12px); /* Для поддержки Safari */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5; /* Под центральной кнопкой Play, но над видео */
+  pointer-events: none; /* Чтобы клики проходили сквозь лоадер к видео */
+}
+
+.vibe-spinner {
+  animation: vibe-spin 1s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(99, 101, 241, 0.6)); /* Легкое свечение цвета --accent-color */
+}
+
+@keyframes vibe-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

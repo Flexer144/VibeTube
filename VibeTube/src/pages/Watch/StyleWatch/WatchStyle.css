@@ -13,3 +13,64 @@
   padding: 4px 8px;
   border-radius: 6px;
 }
+
+/* Контейнер для списка рекомендаций */
+.recommended-list {
+  flex: 1;
+}
+
+/* Карточка видео в поиске/рекомендациях */
+.recommended-item {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.recommended-thumbnail {
+  width: 170px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0; /* Чтобы картинка не сжималась */
+}
+
+.recommended-info {
+  flex: 1;
+  min-width: 0; /* Важно для корректной работы обрезки текста в flex-блоке */
+}
+
+/* Заголовок видео (макс 2 строки) */
+.recommended-title {
+  font-weight: 600;
+  font-size: 15.5px;
+  margin-bottom: 4px;
+  color: #ffffff; /* Белый цвет текста для VibeTube */
+  
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Ограничение в 2 строки */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Имя автора и статистика (макс 1 строка) */
+.recommended-author,
+.recommended-stats {
+  font-size: 13px;
+  color: #888;
+  padding-top: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* Ограничение в 1 строку */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recommended-author {
+  cursor: pointer;
+}
+
+.recommended-author:hover {
+  color: #6365f1; /* Легкий ховер для имени автора */
+}

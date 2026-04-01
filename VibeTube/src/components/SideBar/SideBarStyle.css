@@ -1,11 +1,26 @@
+/* =========================================
+   БАЗОВЫЕ СТИЛИ (ОБЩИЕ ДЛЯ ВСЕХ СТРАНИЦ)
+========================================= */
+:root {
+  --sidebar-width-expanded: 240px;
+  --sidebar-width-collapsed: 76px;
+  --sidebar-bg: #0f0f0f; /* Чистый цвет YouTube */
+}
+
 .side-bar {
-    position: sticky;
-    top: var(--header-height); 
-    height: calc(100vh - var(--header-height));
-    background-color: transparent;
-    z-index: 10;
-    overflow-y: auto;
-    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  /* По умолчанию используем sticky, чтобы на главной он стоял рядом */
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  background-color: rgba(15, 15, 15, 0.89); /* Dark transparent background like YT overlays */
+  backdrop-filter: blur(5px); /* Frosted glass effect for modern beauty (optional, remove if not supported) */
+  z-index: 100;
+  border-right: 1px solid rgba(78, 78, 78, 0.212);
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.2s;
 }
 
 /* Скроллбар */
@@ -13,61 +28,141 @@
 .side-bar::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 10px; }
 .side-bar:hover::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.15); }
 
-/* Размеры */
-.side-bar.expanded { width: 240px; padding: 12px 14px; }
-.side-bar.collapsed { width: 76px; padding: 12px 4px; }
+/* =========================================
+   РЕЖИМ "ГЛАВНАЯ СТРАНИЦА" (STANDARD)
+========================================= */
+.side-bar.standard-mode.expanded {
+  width: var(--sidebar-width-expanded);
+  padding: 12px 14px;
+}
 
-/* Элементы меню */
+.side-bar.standard-mode.collapsed {
+  width: var(--sidebar-width-collapsed);
+  padding: 12px 4px;
+}
+
+/* =========================================
+   РЕЖИМ "ПРОСМОТР ВИДЕО" (OVERLAY)
+========================================= */
+.side-bar.overlay-mode {
+  position: fixed; /* Вырываем из потока, чтобы был ПОВЕРХ видео */
+  z-index: 2000;   /* Самый высокий приоритет */
+  background-color: rgb(12, 12, 12);
+  box-shadow: 15px 0 300px rgba(0, 0, 0, 0.7);
+}
+
+/* Когда на видео свернут — ОН ПОЛНОСТЬЮ ИСЧЕЗАЕТ */
+.side-bar.overlay-mode.collapsed {
+  width: 0;
+  padding: 0;
+  transform: translateX(-100%); /* Улетает влево */
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Когда на видео развернут — ОН ВЫЕЗЖАЕТ ПОВЕРХ */
+.side-bar.overlay-mode.expanded {
+  width: var(--sidebar-width-expanded);
+  padding: 12px 14px;
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Предотвращаем сжатие контента внутри при анимации ширины 0 */
+.side-bar.overlay-mode .sidebar-nav {
+  min-width: 210px;
+}
+
+/* =========================================
+   ЭЛЕМЕНТЫ МЕНЮ (NAV ITEMS)
+========================================= */
 .nav-item {
-    display: flex;
-    align-items: center;
-    border-radius: 10px;
-    cursor: pointer;
-    color: #f1f1f1;
-    position: relative;
-    transition: all 0.2s ease;
-    margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #f1f1f1;
+  position: relative;
+  transition: background 0.2s, color 0.2s;
+  margin-bottom: 4px;
 }
 
 .nav-item:not(.active):hover {
-    background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(93, 79, 216, 0.1);
 }
 
-/* --- АКТИВНЫЙ ЭЛЕМЕНТ --- */
+/* Активное состояние (Твой фиолетовый градиент) */
 .nav-item.active {
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.03) 0%, rgba(99, 102, 241, 0.18) 100%);
-    color: #fff;
-    font-weight: 600;
-    box-shadow: inset -15px 0 25px -15px rgba(99, 102, 241, 0.6);
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.2) 100%);
+  color: #fff;
+  font-weight: 600;
 }
 
 .nav-item.active::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    top: 20%;
-    height: 60%;
-    width: 3px;
-    background-color: #6366f1;
-    border-radius: 4px 0 0 4px;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.8);
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 20%;
+  height: 60%;
+  width: 3px;
+  background-color: #6366f1;
+  border-radius: 4px 0 0 4px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
 }
 
 .nav-item.active svg {
-    color: #6366f1;
-    filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
+  color: #6366f1;
+  filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.4));
 }
 
-/* Состояния сворачивания */
-.side-bar.expanded .nav-item { flex-direction: row; gap: 16px; padding: 10px 14px; }
-.side-bar.expanded .nav-item span { font-size: 14px; }
+/* Стилизация текста и иконок при разных состояниях */
+.side-bar.expanded .nav-item {
+  flex-direction: row;
+  gap: 16px;
+  padding: 10px 14px;
+}
 
-.side-bar.collapsed .nav-item { flex-direction: column; justify-content: center; gap: 6px; padding: 14px 0; }
-.side-bar.collapsed .nav-item span { font-size: 10px; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side-bar.collapsed .nav-item.active::after { right: 2px; }
+.side-bar.collapsed .nav-item {
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 0;
+}
+
+.side-bar.collapsed .nav-item span {
+  font-size: 10px;
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* Разделители и заголовки */
-.sidebar-divider { height: 1px; background-color: rgba(255, 255, 255, 0.08); margin: 12px 8px; }
-.section-title { font-size: 14px; font-weight: 600; color: #aaa; margin: 16px 0 8px 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-.sub-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-.sub-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 12px 8px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  margin: 16px 0 8px 14px;
+  text-transform: uppercase;
+}
+
+.sub-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sub-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
