@@ -4,11 +4,11 @@ import ContentLoader from "react-content-loader"
 const HomeSkeleton = (props: any) => (
   <ContentLoader 
     speed={2}
-    width={539}
-    height={437}
+    width="100%" 
+    height="auto"
     viewBox="0 0 540 437"
     backgroundColor="#474747"
-    foregroundColor="#9e9e9e"
+    foregroundColor="#9e9e9e" 
     {...props}
   >
     <rect x="5" y="4" rx="18" ry="18" width="533" height="303" /> 

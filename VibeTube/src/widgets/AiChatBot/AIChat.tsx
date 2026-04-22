@@ -1,3 +1,4 @@
+// deno-lint-ignore-file
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../shared/lib/supabase.ts'; 
 import { Bot, X, Send, Loader2 } from 'lucide-react';
@@ -7,7 +8,6 @@ import './AIChatStyle.css';
 export default function AIChat() {
   const [isOpen, setIsOpen] = useState(false);
   
-  // 1. Инициализируем состояние сразу из sessionStorage, если там что-то есть
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>(() => {
     const saved = sessionStorage.getItem('vibetube_chat_history');
     return saved ? JSON.parse(saved) : [
@@ -18,12 +18,60 @@ export default function AIChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Реф для контейнера с жидким металлом
+  const liquidMetalRef = useRef<HTMLDivElement>(null);
 
-  // 2. Сохраняем сообщения в sessionStorage при каждом их изменении
+  // Сохраняем историю
   useEffect(() => {
     sessionStorage.setItem('vibetube_chat_history', JSON.stringify(messages));
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Инициализация шейдера для кнопки "Жидкий металл"
+  useEffect(() => {
+    let shaderInstance: any;
+
+    const initShader = async () => {
+      try {
+        const { liquidMetalFragmentShader, ShaderMount } = await import('https://esm.sh/@paper-design/shaders');
+        
+        if (liquidMetalRef.current && !isOpen) {
+          shaderInstance = new ShaderMount(
+            liquidMetalRef.current,
+            liquidMetalFragmentShader,
+            {
+              u_repetition: 1.5,
+              u_softness: 0.5,
+              u_shiftRed: 0.3,
+              u_shiftBlue: 0.3,
+              u_distortion: 0,
+              u_contour: 0,
+              u_angle: 100,
+              u_scale: 1.5,
+              u_shape: 1,
+              u_offsetX: 0.1,
+              u_offsetY: -0.1
+            },
+            undefined,
+            0.6
+          );
+        }
+      } catch (e) {
+        console.error("Ошибка при загрузке шейдера кнопки:", e);
+      }
+    };
+
+    if (!isOpen) {
+        initShader();
+    }
+
+    return () => {
+      if (shaderInstance && typeof shaderInstance.destroy === 'function') {
+        shaderInstance.destroy();
+      }
+    };
+  }, [isOpen]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -51,12 +99,18 @@ export default function AIChat() {
 
   return (
     <div className="ai-chat-wrapper">
-      <button 
-        className={`ai-chat-toggle ${isOpen ? 'hidden' : ''}`}
+      
+      {/* НОВАЯ КНОПКА ЖИДКОГО МЕТАЛЛА */}
+      <div 
+        className={`ai-chat-toggle-container ${isOpen ? 'hidden' : ''}`}
         onClick={() => setIsOpen(true)}
       >
-        <Bot size={24} />
-      </button>
+        <div id="liquid-metal" ref={liquidMetalRef}>
+          <div className="outline">
+            <Bot size={28} className="ai-bot-icon" />
+          </div>
+        </div>
+      </div>
 
       <div className={`ai-chat-window ${isOpen ? 'open' : ''}`}>
         <div className="ai-chat-header">

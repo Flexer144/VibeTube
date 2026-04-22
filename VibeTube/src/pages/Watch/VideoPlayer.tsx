@@ -162,6 +162,7 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
         case "arrowright": e.preventDefault(); seekBy(5); break;
         case "arrowleft": e.preventDefault(); seekBy(-5); break;
         case "m": setIsMuted(prev => !prev); video.muted = !video.muted; break;
+        case "ь": setIsMuted(prev => !prev); video.muted = !video.muted; break;
       }
     };
 

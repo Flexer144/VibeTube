@@ -8,7 +8,7 @@ const ListSkeleton = () => (
           speed={2}
           width="100%" 
           height="auto" 
-          viewBox="0 0 340 250"
+          viewBox="0 0 340 250" 
           backgroundColor="#404040"
           foregroundColor="#9e9e9e"
         >

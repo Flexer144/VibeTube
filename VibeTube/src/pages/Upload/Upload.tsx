@@ -3,7 +3,7 @@ import { supabase } from "../../shared/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import '../../pages/Upload/Style/pageUpload.css';
 import GenreSelector from "./ComponentsUpload/GenreSelector";
-import Portal from "../../shared/ui/Portal"; // <--- ИМПОРТИРОВАТЬ ПОРТАЛ
+import Portal from "../../shared/ui/Portal"; 
 
 import { 
   ChevronRight, 
@@ -13,7 +13,8 @@ import {
   FileVideo, 
   Check, 
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle2
 } from "lucide-react";
 
 const formatDuration = (seconds: number) => {
@@ -26,6 +27,15 @@ const formatDuration = (seconds: number) => {
 
   return h > 0 ? `${h}:${mDisplay}:${sDisplay}` : `${mDisplay}:${sDisplay}`;
 };
+
+// Типизация для улучшенных тостов
+type ToastType = 'error' | 'success' | 'warning';
+interface ToastInfo {
+  id: number;
+  message: string;
+  type: ToastType;
+  isLeaving?: boolean;
+}
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -44,13 +54,17 @@ export default function Upload() {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadSuccess, setUploadSuccess] = useState(false); // Новое состояние успеха
 
   // Состояние для уведомлений (toasts)
-  const [toasts, setToasts] = useState<{id: number, message: string, isLeaving?: boolean}[]>([]);
+  const [toasts, setToasts] = useState<ToastInfo[]>([]);
 
   // Рефы для скрытых инпутов файлов
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Лимит размера видео (50 МБ)
+  const MAX_VIDEO_SIZE_MB = 50;
 
   // --- Загрузка жанров ---
   useEffect(() => {
@@ -62,22 +76,32 @@ export default function Upload() {
   }, []);
 
   const handleVideoChange = (file: File | null) => {
-  if (!file) return;
-  setVideoFile(file);
+    if (!file) return;
 
-  const video = document.createElement('video');
-  video.preload = 'metadata';
-  video.onloadedmetadata = () => {
-    window.URL.revokeObjectURL(video.src);
-    setVideoDuration(formatDuration(video.duration));
+    // ПРОВЕРКА ВЕСА ДО ЗАГРУЗКИ (50МБ)
+    const fileSizeInMB = file.size / (1024 * 1024);
+    if (fileSizeInMB > MAX_VIDEO_SIZE_MB) {
+      triggerToast(`Файл слишком большой (${fileSizeInMB.toFixed(1)} МБ). Лимит — ${MAX_VIDEO_SIZE_MB} МБ.`, 'error');
+      // Сбрасываем инпут, чтобы можно было выбрать заново
+      if (videoInputRef.current) videoInputRef.current.value = '';
+      return;
+    }
+
+    setVideoFile(file);
+
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      setVideoDuration(formatDuration(video.duration));
+    };
+    video.src = URL.createObjectURL(file);
   };
-  video.src = URL.createObjectURL(file);
-};
 
-  // --- Функция для запуска уведомления ---
-  const triggerToast = (message: string) => {
+  // --- Улучшенная функция для запуска уведомления ---
+  const triggerToast = (message: string, type: ToastType = 'warning') => {
     const id = Date.now();
-    setToasts(prev => [...prev, { id, message }]);
+    setToasts(prev => [...prev, { id, message, type }]);
 
     // Запускаем анимацию ухода через 4 секунды
     setTimeout(() => {
@@ -90,16 +114,16 @@ export default function Upload() {
     }, 4500);
   };
 
-  // --- Логика переключения шагов (Заменили алерты) ---
+  // --- Логика переключения шагов ---
   const handleNext = () => {
     if (currentStep === 1) {
-      if (!title.trim()) return triggerToast("Вы забыли ввести название видео");
-      if (!description.trim()) return triggerToast("Поле описания не заполнено");
-      if (selectedGenres.length === 0) return triggerToast("Выберите хотя бы один жанр");
+      if (!title.trim()) return triggerToast("Вы забыли ввести название видео", 'warning');
+      if (!description.trim()) return triggerToast("Поле описания не заполнено", 'warning');
+      if (selectedGenres.length === 0) return triggerToast("Выберите хотя бы один жанр", 'warning');
     }
     
     if (currentStep === 2) {
-      if (!thumbnailFile) return triggerToast("Загрузите превью для вашего видео");
+      if (!thumbnailFile) return triggerToast("Загрузите превью для вашего видео", 'warning');
     }
 
     if (currentStep < 3) {
@@ -115,10 +139,22 @@ export default function Upload() {
     }
   };
 
+  // Функция для сброса формы и загрузки нового видео
+  const handleResetUpload = () => {
+    setTitle("");
+    setDescription("");
+    setSelectedGenres([]);
+    setThumbnailFile(null);
+    setVideoFile(null);
+    setCurrentStep(1);
+    setProgress(0);
+    setUploadSuccess(false);
+  };
+
 // ================= ОСНОВНАЯ ЗАГРУЗКА =================
   const handleUpload = async () => {
     if (!videoFile || !thumbnailFile || !title) {
-      return triggerToast("Заполни все поля");
+      return triggerToast("Заполни все поля", 'error');
     }
 
     setLoading(true);
@@ -140,6 +176,7 @@ export default function Upload() {
       
       if (thumbError) throw thumbError;
       setProgress(52);
+      
       const progressInterval = setInterval(() => {
         setProgress((prev) => (prev < 90 ? prev + 5 : prev));
       }, 500);
@@ -181,12 +218,16 @@ export default function Upload() {
       }
 
       setProgress(100);
-      alert("Видео загружено успешно!");
-      navigate("/");
+      
+      // Имитируем небольшую задержку перед показом экрана успеха, чтобы юзер увидел 100%
+      setTimeout(() => {
+        setUploadSuccess(true);
+        triggerToast("Видео загружено успешно!", "success");
+      }, 500);
 
     } catch (err: any) {
       console.error("FULL ERROR:", err);
-      return triggerToast(`Ошибка: ${err.message || "400 Bad Request"}`);
+      return triggerToast(`Ошибка: ${err.message || "400 Bad Request"}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -260,6 +301,28 @@ export default function Upload() {
           </div>
         );
       case 3:
+        // Экран успеха
+        if (uploadSuccess) {
+          return (
+            <div className="success-container fade-in">
+              <div className="success-icon-wrapper">
+                <Check size={60} className="success-icon" strokeWidth={3} />
+              </div>
+              <h3 className="success-title">Видео опубликовано!</h3>
+              <p className="success-text">Ваш ролик успешно загружен на платформу и готов к просмотру.</p>
+              
+              <div className="success-actions">
+                <button className="btn btn-secondary" onClick={() => navigate("/")}>
+                  На главную
+                </button>
+                <button className="btn btn-primary" onClick={handleResetUpload}>
+                  Загрузить еще
+                </button>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div>
              <label className="pu-label">Загрузка видео файла</label>
@@ -312,62 +375,70 @@ export default function Upload() {
 
   return (
     <div className="upload-page-wrapper">
-      {/* Анимированные световые пятна на фоне */}
       <div className="glow-blob blob-1"></div>
       <div className="glow-blob blob-2"></div>
       <div className="glow-blob blob-3"></div>
 
       <div className="upload-card">
-        <h2 className="upload-title">Новое видео</h2>
+        <h2 className="upload-title">{uploadSuccess ? "Готово" : "Новое видео"}</h2>
 
-        <div className="stepper-wrapper">
-          {[1, 2, 3].map((step) => (
-            <div 
-              key={step} 
-              className={`step-item ${currentStep === step ? 'active' : ''} ${step < currentStep ? 'completed' : ''}`}
-            >
-              <div className="step-circle">
-                {step < currentStep ? <Check size={18} /> : step}
+        {!uploadSuccess && (
+          <div className="stepper-wrapper">
+            {[1, 2, 3].map((step) => (
+              <div 
+                key={step} 
+                className={`step-item ${currentStep === step ? 'active' : ''} ${step < currentStep ? 'completed' : ''}`}
+              >
+                <div className="step-circle">
+                  {step < currentStep ? <Check size={18} /> : step}
+                </div>
+                <span className="step-label">
+                  {step === 1 ? 'Детали' : step === 2 ? 'Обложка' : 'Видео'}
+                </span>
               </div>
-              <span className="step-label">
-                {step === 1 ? 'Детали' : step === 2 ? 'Обложка' : 'Видео'}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="step-content">
           {renderStepContent()}
         </div>
 
-        <div className="step-actions">
-          <button 
-            className="btn btn-secondary"
-            onClick={handleBack}
-            disabled={currentStep === 1 || loading}
-          >
-            <ChevronLeft size={16} /> Назад
-          </button>
+        {!uploadSuccess && (
+          <div className="step-actions">
+            <button 
+              className="btn btn-secondary"
+              onClick={handleBack}
+              disabled={currentStep === 1 || loading}
+            >
+              <ChevronLeft size={16} /> Назад
+            </button>
 
-          <button 
-            className="btn btn-primary"
-            onClick={handleNext}
-            disabled={loading || (currentStep === 3 && !videoFile)}
-          >
-            {loading ? 'Загружаем...' : currentStep === 3 ? 'Опубликовать' : 'Далее'}
-            {!loading && currentStep !== 3 && <ChevronRight size={16} />}
-          </button>
-        </div>
+            <button 
+              className="btn btn-primary"
+              onClick={handleNext}
+              disabled={loading || (currentStep === 3 && !videoFile)}
+            >
+              {loading ? 'Загружаем...' : currentStep === 3 ? 'Опубликовать' : 'Далее'}
+              {!loading && currentStep !== 3 && <ChevronRight size={16} />}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* --- Контейнер для уведомлений, теперь обернутый в Portal --- */}
       <Portal>
         <div className="toast-container">
           {toasts.map((toast) => (
-            <div key={toast.id} className={`toast-item ${toast.isLeaving ? 'leaving' : ''}`}>
-              <AlertTriangle className="toast-icon" size={20} />
+            <div key={toast.id} className={`toast-item ${toast.type} ${toast.isLeaving ? 'leaving' : ''}`}>
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="toast-icon" size={20} />
+              ) : (
+                <AlertTriangle className="toast-icon" size={20} />
+              )}
               <div className="toast-content">
-                <h4 className="toast-title">Предупреждение! Что-то пошло не так</h4>
+                <h4 className="toast-title">
+                  {toast.type === 'error' ? 'Ошибка' : toast.type === 'success' ? 'Успешно' : 'Внимание'}
+                </h4>
                 <p className="toast-message">{toast.message}</p>
               </div>
             </div>
