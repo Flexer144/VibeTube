@@ -89,7 +89,7 @@
 }
 
 /* Кнопки-чипсы */
-.genre-chip, .upload-btn {
+.genre-chip {
   background-color: rgba(54, 55, 119, 0.863);
   color: rgb(255, 255, 255);
   border: none;
@@ -104,7 +104,7 @@
   transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.genre-chip:hover, .upload-btn:hover {
+.genre-chip:hover {
   background-color: rgb(60, 61, 133);
 }
 .genre-chip.active {
@@ -184,18 +184,17 @@
 }
 
 .profile-menu-container:hover .header-avatar {
-    border-color: #6366f1; /* Фиолетовый ободок при ховере */
+    border-color: #6366f1;
 }
 
-/* ВЫПАДАЮЩЕЕ МЕНЮ */
 .profile-dropdown {
     position: absolute;
     top: 100%;
     right: 0;
     width: 220px;
-    background-color: #0f0f0f; /* Темный фон под YouTube/Workly */
+    background-color: #0f0f0f;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px; /* Сильное скругление как на референсе */
+    border-radius: 16px;
     padding: 8px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     z-index: 1000;
@@ -208,7 +207,6 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Пункты меню */
 .dropdown-item {
     display: flex;
     align-items: center;
@@ -238,14 +236,12 @@
     filter: drop-shadow(0 0 3px rgba(99, 102, 241, 0.6));
 }
 
-/* Разделитель */
 .dropdown-divider {
     height: 1px;
     background-color: rgba(255, 255, 255, 0.1);
     margin: 8px 0;
 }
 
-/* Особый стиль для кнопки выхода */
 .dropdown-item.logout:hover {
     background: linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.15) 100%);
     box-shadow: inset -10px 0 20px -10px rgba(239, 68, 68, 0.4);
@@ -254,4 +250,61 @@
 .dropdown-item.logout:hover svg {
     color: #ef4444;
     filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.5));
+}
+
+.admin-panel-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 2px;
+  background: rgba(220, 38, 38, 0.1); 
+  border: 1px solid rgba(220, 38, 38, 0.8); 
+  color: #ef4444;
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.2);
+}
+
+.admin-panel-icon-btn:hover {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 1);
+  box-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
+}
+
+.admin-panel-icon-btn:active {
+  transform: scale(0.96);
+  background: rgba(220, 38, 38, 0.3);
+}
+
+.upload-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  background: rgba(99, 102, 241, 0.1); 
+  border: 1px solid rgba(99, 102, 241, 0.7); 
+  color: rgba(99, 102, 241, 1); 
+
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+}
+
+.upload-icon-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 1);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+}
+
+.upload-icon-btn:active {
+  transform: scale(0.95);
+  background: rgba(99, 102, 241, 0.3);
 }

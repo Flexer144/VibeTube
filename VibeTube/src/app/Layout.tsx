@@ -22,6 +22,7 @@ export default function Layout() {
     location.pathname.startsWith("/search") || 
     location.pathname.startsWith("/video") || 
     location.pathname.startsWith("/channel") || 
+    location.pathname.startsWith("/admin") ||
     isUploadPage;
 
   const headerHeight = isHideGenres ? "66px" : "120px";

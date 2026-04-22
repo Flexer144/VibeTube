@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
 import Search from "../Header/Search";
 import { supabase } from "../../shared/lib/supabase";
-import { Menu, User, Settings, LogOut } from "lucide-react"; 
+import { Menu, User, Settings, LogOut, ShieldAlert, Upload } from "lucide-react"; 
 import { useEffect, useState, useRef } from "react";
 import "./HeaderStyle.css";
 
@@ -52,7 +52,8 @@ export default function Header({
   const isHideGenres = location.pathname.startsWith("/search") || 
                        location.pathname.startsWith("/video") || 
                        location.pathname.startsWith("/channel") || 
-                       location.pathname.startsWith("/upload"); 
+                       location.pathname.startsWith("/upload") ||
+                       location.pathname.startsWith("/admin"); 
 
   useEffect(() => {
     const loadHeaderData = async () => {
@@ -126,7 +127,24 @@ export default function Header({
         </div>
 
         <div className="header-right">
-          <button className="create-btn upload-btn" onClick={() => navigate("/upload")}>Создать</button>
+
+          {profile?.role === 'admin' && (
+            <button 
+              className="admin-panel-icon-btn"
+              onClick={() => navigate("/admin")}
+              title="Админ панель / Модерация"
+            >
+              <ShieldAlert size={20} />
+            </button>
+          )}
+
+          <button 
+            className="upload-icon-btn" // Новый класс
+            onClick={() => navigate("/upload")}
+            title="Загрузить видео"
+          >
+            <Upload size={20} />
+          </button>
           
           <div 
             className="profile-menu-container"

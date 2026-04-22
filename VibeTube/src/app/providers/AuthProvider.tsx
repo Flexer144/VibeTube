@@ -3,6 +3,7 @@ import { supabase } from "../../shared/lib/supabase";
 
 type Profile = {
   username: string;
+  role: 'user' | 'admin';
 };
 
 type AuthContextType = {
@@ -25,7 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loadProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, role")
       .eq("id", userId)
       .single();
 
