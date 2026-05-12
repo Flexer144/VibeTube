@@ -100,7 +100,6 @@ export default function AIChat() {
   return (
     <div className="ai-chat-wrapper">
       
-      {/* НОВАЯ КНОПКА ЖИДКОГО МЕТАЛЛА */}
       <div 
         className={`ai-chat-toggle-container ${isOpen ? 'hidden' : ''}`}
         onClick={() => setIsOpen(true)}
