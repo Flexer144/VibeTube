@@ -1,0 +1,285 @@
+/* Контейнер, фиксируем в правом нижнем углу */
+.ai-chat-wrapper {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9;
+  font-family: 'Inter', 'Roboto', sans-serif;
+  pointer-events: none; 
+}
+
+/* --- КНОПКА ЖИДКОГО МЕТАЛЛА --- */
+.ai-chat-toggle-container {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  pointer-events: auto; 
+}
+
+.ai-chat-toggle-container:hover {
+  transform: scale(1.1);
+}
+
+.ai-chat-toggle-container.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.5);
+}
+
+#liquid-metal {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+#liquid-metal canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50%;
+}
+
+.outline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px; 
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.8) 25%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.8) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: spin-shimmer 4s linear infinite;
+}
+
+.ai-chat-toggle-container:hover .outline::before {
+  animation: spin-shimmer 0.8s linear infinite;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 1) 25%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 1) 75%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+}
+
+@keyframes spin-shimmer {
+  100% { transform: rotate(360deg); }
+}
+
+.ai-bot-icon {
+  color: #ffffff;
+  z-index: 10;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
+.ai-chat-window {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 420px;
+  height: 650px;
+  background: linear-gradient(145deg, rgba(25, 25, 25, 0.9), rgba(10, 10, 10, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(30px) scale(0.95);
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.ai-chat-window.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+/* Шапка с эффектом металла */
+.ai-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.08), transparent);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.ai-chat-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ai-close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.ai-close-btn:hover {
+  background: rgba(255, 0, 0, 0.2);
+  border-color: rgba(255, 0, 0, 0.3);
+}
+
+/* Область сообщений */
+.ai-chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-chat-messages::-webkit-scrollbar { width: 4px; }
+.ai-chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* Пузыри сообщений */
+.ai-message {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Бот: Светлый матовый металл */
+.ai-message.bot {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.07);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom-left-radius: 4px;
+}
+
+/* Юзер: Темный титан с холодным свечением */
+.ai-message.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #2c2c2c, #1a1a1a);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Индикатор набора */
+.ai-message.loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #888;
+  background: transparent;
+  padding: 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Зона ввода */
+.ai-chat-input-area {
+  display: flex;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 10px;
+}
+
+.ai-chat-input-area input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: #fff;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.ai-chat-input-area input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-chat-input-area button {
+  background: #ffffff; /* Белая контрастная кнопка */
+  border: none;
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-chat-input-area button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+.ai-chat-input-area button:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Стили Markdown */
+.markdown-content a { color: #fff; text-decoration: underline; font-weight: 600; }
+.markdown-content p { margin-bottom: 8px; }
+.markdown-content ul { margin-left: 20px; } 

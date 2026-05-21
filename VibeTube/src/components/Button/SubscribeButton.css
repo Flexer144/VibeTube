@@ -1,0 +1,111 @@
+.subscribe-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sub-btn {
+  position: relative;
+  height: 45px;
+  width: 180px;
+  background: #6366f1;
+  border: none;
+  border-radius: 25px;
+  color: rgb(255, 255, 255);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: visible; /* Чтобы конфетти вылетало за края */
+  user-select: non;
+}
+.is-subbed{
+    background: linear-gradient(90deg, rgb(59, 59, 59) 0%, rgb(73, 73, 73) 100%);
+    color: #fff;
+    transition: box-shadow 0.5s;
+}
+.is-subbed:hover{
+    box-shadow: inset -10px 0 20px -10px rgba(99, 102, 241, 0.5);
+}
+
+/* --- ТРАНСФОРМАЦИЯ В КАПСУЛУ ПРИ ЗАГРУЗКЕ --- */
+.sub-btn.state-loading {
+  width: 70px;
+  background: #6366f1;
+  pointer-events: none;
+}
+
+.sub-btn.state-success {
+  width: 180px;
+  background: #6366f1;
+  pointer-events: none;
+}
+
+/* Скрытие/показ контента */
+.content-default, .content-loading, .content-success {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.sub-btn.state-idle .content-loading, .sub-btn.state-idle .content-success { opacity: 0; transform: scale(0.5); pointer-events: none; }
+.sub-btn.state-loading .content-default, .sub-btn.state-loading .content-success { opacity: 0; transform: scale(0.5); pointer-events: none; }
+.sub-btn.state-success .content-default, .sub-btn.state-success .content-loading { opacity: 0; transform: scale(0.5); pointer-events: none; }
+
+/* --- АНИМАЦИЯ ТОЧЕК --- */
+.dot {
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  animation: dot-jump 0.6s infinite alternate;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-jump {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+
+/* --- КОНФЕТТИ (ВЗРЫВ) --- */
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: #6366f1;
+  border-radius: 2px;
+  opacity: 0;
+}
+
+.sub-btn.state-success .particle {
+  animation: explode 0.7s ease-out forwards;
+}
+
+/* Раскидываем частицы по кругу */
+.p0 { --dx: -40px; --dy: -40px; }
+.p1 { --dx: 40px; --dy: -40px; }
+.p2 { --dx: 0px; --dy: -60px; }
+.p3 { --dx: -60px; --dy: 0px; }
+.p4 { --dx: 60px; --dy: 0px; }
+.p5 { --dx: -30px; --dy: 50px; }
+.p6 { --dx: 30px; --dy: 50px; }
+.p7 { --dx: 0px; --dy: 70px; }
+/* ... можно добавить еще позиций */
+
+@keyframes explode {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0); opacity: 0; }
+}

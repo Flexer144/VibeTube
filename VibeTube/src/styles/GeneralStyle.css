@@ -1,0 +1,262 @@
+:root {
+  --cl-base: #6365F1; /* Стандартный красный YouTube */
+  --cl-accent: #7b7dec;
+  --bg-blur: #6d6fec3b; 
+}
+
+body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;                    /* для горизонтального тоже */
+}
+
+body::-webkit-scrollbar-track {
+  background: #0f0f17;            /* тёмный фон */
+  border-radius: 10px;
+  margin: 2px;                    /* отступы от краёв */
+}
+
+body::-webkit-scrollbar-thumb {
+  background: linear-gradient(50deg, rgba(54, 55, 119, 0.863), rgb(61, 63, 165));
+  border-radius: 10px;
+  box-shadow: 
+    inset 0 0 6px rgba(124, 58, 237, 0.4),
+    0 0 8px rgba(124, 58, 237, 0.6);
+  transition: all 0.25s ease;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(7, 8, 44);
+}
+
+html{
+    background-color: rgb(15, 15, 15);
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+html::selection { color: white; background-color: rgb(99, 101, 241); }
+
+#nprogress .bar {
+    background: #ff5733 !important; /* Замените на ваш цвет */
+}
+
+/* Цвет "свечения" на кончике линии */
+#nprogress .peg {
+    box-shadow: 0 0 10px #ff5733, 0 0 5px #ff5733 !important;
+}
+
+/* Цвет крутящегося спиннера (если он есть) */
+#nprogress .spinner-icon {
+    border-top-color: #ff5733 !important;
+    border-left-color: #ff5733 !important;
+}
+
+
+
+/* =========================================
+   АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ (< 500px)
+========================================= */
+
+/* 1. Затемнение фона (Overlay) */
+.sidebar-mobile-overlay {
+  display: none;
+  position: fixed;
+  top: var(--header-height); /* Начинается под шапкой */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 90; /* Ниже чем сайдбар (100), но выше контента */
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.sidebar-mobile-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 2. Секция профиля в мобильном меню (по умолчанию скрыта) */
+.mobile-profile-section {
+  display: none;
+  padding: 0 0px 16px 0px;
+}
+
+.mobile-profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.mobile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+  margin-left: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-username {
+  font-weight: 600;
+  font-size: 16px;
+  color: #fff;
+}
+
+.logout-mobile {
+  color: #ff4b4b !important;
+}
+.logout-mobile svg {
+  color: #ff4b4b !important;
+}
+
+@media screen and (max-width: 500px) {
+
+  .sidebar-mobile-overlay {
+    display: block;
+  }
+  .mobile-profile-section {
+    display: block;
+  }
+
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  .side-bar {
+    position: fixed;
+    top: var(--header-height);
+    height: calc(100vh - var(--header-height));
+    z-index: 100;
+    border-right: none;
+  }
+
+  
+  .side-bar.collapsed {
+    width: var(--sidebar-width-expanded) !important; 
+    transform: translateX(-100%); 
+    padding: 12px 14px; 
+  }
+
+  
+  .side-bar.expanded {
+    transform: translateX(0);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  
+  .video-card {
+    width: 100vw;
+    border-radius: 0; 
+  }
+
+  .video-card-inner {
+    border-radius: 0;
+  }
+
+  .thumbnail-wrapper, 
+  .video-media, 
+  .video-preview-overlay {
+    border-radius: 0 !important;
+  }
+
+  .ambient-glow {
+    display: none !important;
+  }
+  
+  .video-info-container {
+    padding: 12px 14px 0 14px;
+  }
+
+  .search-wrapper{
+    display: none;
+  }
+
+  .ai-chat-window {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    max-height: 80vh; 
+  }
+  .ai-chat-wrapper {
+    position: fixed; 
+    bottom: 30px;
+    right: 10px;
+    left: 10px; 
+    width: calc(100% - 20px);
+    height: auto;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .ai-chat-toggle-container {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+  .header-wrapper.sidebar-expanded .header-genres-scroll {
+    padding-left: unset;
+    opacity: 0;
+  }
+  .header-wrapper.sidebar-collapsed .header-genres-scroll {
+    padding-left: 0px;
+  }
+  .header-wrapper.sidebar-collapsed {
+    --sidebar-offset: 10px;
+  }
+  .header-bottom-bar {
+    padding: 8px 1px 12px 0px;
+  }
+  .genre-chip:first-child {
+    margin-left: 10px;
+  }
+  .header-genres-scroll {
+    gap: 8px;
+  }
+  .video-primary-row {
+    display: flex;
+    flex-direction: row;       /* Выстраиваем всё в одну линию */
+    flex-wrap: nowrap;         /* Запрещаем перенос элементов на новую строку */
+    overflow-x: auto;          /* Включаем горизонтальную прокрутку при выходе за границы */
+    overflow-y: hidden;         /* Прячем вертикальный скролл на всякий случай */
+    gap: 12px;                 /* Отступ между блоком автора и кнопками */
+    padding: 8px 0px;         /* Внутренние отступы, чтобы элементы не прижимались к краям */
+    
+    /* Плавный скролл на iOS (Safari) */
+    -webkit-overflow-scrolling: touch; 
+    
+    /* Скрываем стандартный скроллбар для Firefox и IE/Edge */
+    scrollbar-width: none;     
+    -ms-overflow-style: none;  
+  }
+
+  /* Скрываем стандартный скроллбар для Chrome, Safari, Opera и новых Edge */
+  .video-primary-row::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Чтобы блоки внутри не сжимались и сохраняли свои размеры при прокрутке */
+  .author-and-subscribe,
+  .actions-right-bar {
+    flex-shrink: 0;            /* КРИТИЧЕСКИ ВАЖНО: запрещает элементам сплющиваться */
+    display: flex;
+    align-items: center;
+  }
+
+  /* На мобилках дублирующий блок .actions-right-bar внутри .author-and-subscribe 
+     скорее всего не нужен, если мы выстроили всё в один ряд. 
+     Убедитесь, что у вас показывается только один из них, например: */
+  .actions-right-bar.mobile-only {
+    display: unset; /* Если элементы теперь и так в один ряд благодаря флексам */
+  }
+  .actions-right-bar {
+    flex-shrink: 0;   /* Запрещаем сжиматься */
+    flex-grow: 0;     /* ЗАПРЕЩАЕМ РАСТЯГИВАТЬСЯ в пустую область */
+    width: max-content; /* Заставляем блок ужаться под размер кнопок лайков */
+    padding-right: 0;
+  }
+}

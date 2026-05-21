@@ -1,0 +1,27 @@
+.comment-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.comment-time {
+  color: gray;
+  font-size: 12px;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.show-replies-btn {
+  background: none;
+  border: none;
+  color: #3ea6ff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.comment-replies {
+  margin-top: 5px;
+}

@@ -1,0 +1,25 @@
+.video-card {
+  cursor: pointer;
+}
+
+.video-thumb {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.video-info h4 {
+  margin: 5px 0;
+}
+
+.video-author {
+  font-size: 14px;
+  color: gray;
+}
+
+.video-genres span {
+  background: #eee;
+  padding: 2px 6px;
+  margin-right: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}

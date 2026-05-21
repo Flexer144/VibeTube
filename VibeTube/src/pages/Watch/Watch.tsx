@@ -1,0 +1,245 @@
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "../../shared/lib/supabase";
+import { useAuth } from "../../app/providers/AuthProvider"; 
+
+import VideoPlayer from "./VideoPlayer";
+import VideoInfo from "./VideoInfo";
+import VideoActions from "./VideoActions";
+import CommentsList from "./Comments/CommentsList";
+import CommentForm from "./Comments/CommentForm";
+import { timeAgo } from "../../shared/utils/timeAgo";
+import "../../pages/Watch/StyleWatch/WatchStyle.css";
+import { pluralize } from "../../shared/lib/pluralize";
+
+export default function Watch() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [video, setVideo] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [commentsRefresh, setCommentsRefresh] = useState(0);
+  const [recommended, setRecommended] = useState<any[]>([]);
+  const [subscribersCount, setSubscribersCount] = useState<number>(0);
+
+
+  /* ===========================
+     Загрузка видео
+  =========================== */
+  useEffect(() => {
+    if (id) {
+      fetchVideo();
+    }
+  }, [id]);
+
+   useEffect(() => {
+    const recordHistory = async () => {
+      if (user && video) {
+        const { error } = await supabase
+          .from('watch_history')
+          .upsert(
+            { 
+              user_id: user.id,
+              video_id: video.id,
+              viewed_at: new Date().toISOString() 
+            },
+            { onConflict: 'user_id, video_id' }
+          );
+        
+        if (error) console.error("Ошибка истории:", error);
+      }
+    };
+
+    recordHistory();
+  }, [video, user]);
+
+  const fetchVideo = async () => {
+    setLoading(true);
+
+    const { data } = await supabase
+      .from("videos")
+      .select(`
+        *,
+        profiles(username, avatar_url),
+        video_genres(
+          genres(name,id)
+        )
+      `)
+      .eq("id", id)
+      .single();
+
+    setVideo(data);
+    setLoading(false);
+  };
+
+  /* ===========================
+     Получение подписчиков
+  =========================== */
+  const fetchSubscribers = useCallback(async () => {
+    if (!video?.author_id) return;
+
+    const { count, error } = await supabase
+      .from("subscriptions")
+      .select("*", { count: "exact", head: true })
+      .eq("channel_id", video.author_id);
+
+    if (!error && typeof count === "number") {
+      setSubscribersCount(count);
+    }
+  }, [video?.author_id]);
+
+  useEffect(() => {
+    fetchSubscribers();
+  }, [fetchSubscribers]);
+
+  /* ===========================
+     Рекомендованные видео
+  =========================== */
+  useEffect(() => {
+    const fetchRecommended = async () => {
+      const { data, error } = await supabase
+        .from("videos")
+        .select(`
+          id,
+          title,
+          thumbnail_url,
+          views,
+          created_at,
+          profiles(id, username, avatar_url)
+        `)
+        .neq("id", id)
+        .order("created_at", { ascending: false })
+
+      if (!error && data) {
+        setRecommended(data);
+      }
+    };
+
+    if (id) {
+      fetchRecommended();
+    }
+  }, [id]);
+
+  /* ===========================
+     Обновление комментариев
+  =========================== */
+  const refreshComments = () => {
+    setCommentsRefresh((prev) => prev + 1);
+  };
+
+  /* ===========================
+     Инкремент просмотров
+  =========================== */
+  useEffect(() => {
+    if (!id || !video) return;
+
+    const viewedKey = `viewed_${id}`;
+    const alreadyViewed = sessionStorage.getItem(viewedKey);
+
+    if (alreadyViewed) return;
+
+    // СРАЗУ ЖЕ записываем в sessionStorage, ДО отправки запроса!
+    // Это мгновенно блокирует второй вызов от React Strict Mode
+    sessionStorage.setItem(viewedKey, "true");
+
+    const increment = async () => {
+      const { error } = await supabase.rpc("increment_views", { video_id: id });
+      
+      // Если запрос почему-то упал (например, отпал интернет), 
+      // удаляем отметку, чтобы просмотр мог засчитаться при обновлении страницы
+      if (error) {
+        console.error("Ошибка при добавлении просмотра:", error);
+        sessionStorage.removeItem(viewedKey);
+      }
+    };
+
+    increment();
+  }, [id, video]);
+
+  /* =========================== */
+
+  if (loading) return <p>Загрузка...</p>;
+  if (!video) return <p>Видео не найдено</p>;
+
+  return (
+    <div className="watch-page-container">
+      {/* ЛЕВАЯ КОЛОНКА (Главная) */}
+      <div className="watch-main-column">
+        {/* Обертка плеера, чтобы на мобилках убирать отступы */}
+        <div className="watch-player-wrapper">
+          <VideoPlayer 
+            url={video.video_url} 
+            thumbnailUrl={video.thumbnail_url} 
+          />
+        </div>
+
+        <div className="watch-info-wrapper">
+          <VideoInfo
+            video={video}
+            subscribersCount={subscribersCount}
+            onSubscriptionChange={fetchSubscribers}
+          />
+          <CommentsList
+            videoId={video.id}
+            refresh={commentsRefresh}
+          />
+        </div>
+      </div>
+
+      {/* ПРАВАЯ КОЛОНКА (Рекомендации) */}
+      <div className="watch-secondary-column">
+        <div className="recommended-list">
+          {recommended.map((video) => (
+            <div
+              key={video.id}
+              className="recommended-item"
+              onClick={() => navigate(`/video/${video.id}`)}
+            >
+              {/* Превью видео */}
+              <img
+                src={video.thumbnail_url}
+                alt={video.title}
+                className="recommended-thumbnail"
+              />
+              
+              {/* Контейнер для аватара и инфы под ним на мобилках */}
+              <div className="recommended-content-block">
+                <img
+                  src={video.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${video.profiles?.username}`}
+                  alt="avatar"
+                  className="recommended-avatar"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/channel/${video.profiles?.id}`);
+                  }}
+                />
+                
+                <div className="recommended-info">
+                  <div className="recommended-title">{video.title}</div>
+                  
+                  {/* Обертка для автора и статистики */}
+                  <div className="recommended-details">
+                    <div
+                      className="recommended-author"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/channel/${video.profiles?.id}`);
+                      }}
+                    >
+                      {video.profiles?.username}
+                    </div>
+                    <div className="recommended-stats">
+                      {video.views} {pluralize(video.views, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
