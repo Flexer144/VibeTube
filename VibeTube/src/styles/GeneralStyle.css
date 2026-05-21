@@ -106,9 +106,6 @@ html::selection { color: white; background-color: rgb(99, 101, 241); }
 .logout-mobile svg {
   color: #ff4b4b !important;
 }
-.video-wrapper {
-  position: relative;
-}
 
 @media screen and (max-width: 500px) {
 
@@ -258,14 +255,4 @@ html::selection { color: white; background-color: rgb(99, 101, 241); }
     *, *::before, *::after {
     box-sizing: border-box;
   }
-
-.fullscreen-mode {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  z-index: 99999 !important;
-  background: black;
-}
 }
