@@ -1,18 +1,20 @@
 :root {
-  --cl-base: #6365F1; /* Стандартный красный YouTube */
+  --cl-base: #6365F1;
   --cl-accent: #7b7dec;
   --bg-blur: #6d6fec3b; 
 }
 
+
+
 body::-webkit-scrollbar {
   width: 6px;
-  height: 6px;                    /* для горизонтального тоже */
+  height: 6px;                  
 }
 
 body::-webkit-scrollbar-track {
-  background: #0f0f17;            /* тёмный фон */
+  background: #0f0f17;           
   border-radius: 10px;
-  margin: 2px;                    /* отступы от краёв */
+  margin: 2px;                
 }
 
 body::-webkit-scrollbar-thumb {
@@ -36,36 +38,30 @@ html{
 html::selection { color: white; background-color: rgb(99, 101, 241); }
 
 #nprogress .bar {
-    background: #ff5733 !important; /* Замените на ваш цвет */
+    background: #ff5733 !important; 
 }
 
-/* Цвет "свечения" на кончике линии */
+
 #nprogress .peg {
     box-shadow: 0 0 10px #ff5733, 0 0 5px #ff5733 !important;
 }
 
-/* Цвет крутящегося спиннера (если он есть) */
+
 #nprogress .spinner-icon {
     border-top-color: #ff5733 !important;
     border-left-color: #ff5733 !important;
 }
 
 
-
-/* =========================================
-   АДАПТИВ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ (< 500px)
-========================================= */
-
-/* 1. Затемнение фона (Overlay) */
 .sidebar-mobile-overlay {
   display: none;
   position: fixed;
-  top: var(--header-height); /* Начинается под шапкой */
+  top: var(--header-height); 
   left: 0;
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.6);
-  z-index: 90; /* Ниже чем сайдбар (100), но выше контента */
+  z-index: 90; 
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -76,7 +72,6 @@ html::selection { color: white; background-color: rgb(99, 101, 241); }
   pointer-events: auto;
 }
 
-/* 2. Секция профиля в мобильном меню (по умолчанию скрыта) */
 .mobile-profile-section {
   display: none;
   padding: 0 0px 16px 0px;
@@ -217,46 +212,47 @@ html::selection { color: white; background-color: rgb(99, 101, 241); }
   }
   .video-primary-row {
     display: flex;
-    flex-direction: row;       /* Выстраиваем всё в одну линию */
-    flex-wrap: nowrap;         /* Запрещаем перенос элементов на новую строку */
-    overflow-x: auto;          /* Включаем горизонтальную прокрутку при выходе за границы */
-    overflow-y: hidden;         /* Прячем вертикальный скролл на всякий случай */
-    gap: 12px;                 /* Отступ между блоком автора и кнопками */
-    padding: 8px 0px;         /* Внутренние отступы, чтобы элементы не прижимались к краям */
-    
-    /* Плавный скролл на iOS (Safari) */
+    flex-direction: row;      
+    flex-wrap: nowrap;         
+    overflow-x: auto;         
+    overflow-y: hidden;        
+    gap: 12px;              
+    padding: 8px 0px;      
     -webkit-overflow-scrolling: touch; 
-    
-    /* Скрываем стандартный скроллбар для Firefox и IE/Edge */
     scrollbar-width: none;     
     -ms-overflow-style: none;  
   }
 
-  /* Скрываем стандартный скроллбар для Chrome, Safari, Opera и новых Edge */
   .video-primary-row::-webkit-scrollbar {
     display: none;
     width: 0;
     height: 0;
   }
 
-  /* Чтобы блоки внутри не сжимались и сохраняли свои размеры при прокрутке */
   .author-and-subscribe,
   .actions-right-bar {
-    flex-shrink: 0;            /* КРИТИЧЕСКИ ВАЖНО: запрещает элементам сплющиваться */
+    flex-shrink: 0;       
     display: flex;
     align-items: center;
   }
 
-  /* На мобилках дублирующий блок .actions-right-bar внутри .author-and-subscribe 
-     скорее всего не нужен, если мы выстроили всё в один ряд. 
-     Убедитесь, что у вас показывается только один из них, например: */
+
   .actions-right-bar.mobile-only {
-    display: unset; /* Если элементы теперь и так в один ряд благодаря флексам */
+    display: unset; 
   }
   .actions-right-bar {
-    flex-shrink: 0;   /* Запрещаем сжиматься */
-    flex-grow: 0;     /* ЗАПРЕЩАЕМ РАСТЯГИВАТЬСЯ в пустую область */
-    width: max-content; /* Заставляем блок ужаться под размер кнопок лайков */
+    flex-shrink: 0; 
+    flex-grow: 0;    
+    width: max-content; 
     padding-right: 0;
+  }
+  .video-card-inner {
+    transition: unset;
+  }
+  .video-card:hover .video-card-inner {
+    transform: unset;
+  }
+    *, *::before, *::after {
+    box-sizing: border-box;
   }
 }

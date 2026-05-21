@@ -192,7 +192,8 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
         ref={videoRef} 
         onLoadedMetadata={handleLoadedMetadata}
         onDurationChange={handleLoadedMetadata}
-        src={url} 
+        src={url}
+        playsInline 
         poster={thumbnailUrl}
         preload="metadata"
         onClick={togglePlay} 
