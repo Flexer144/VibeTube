@@ -20,7 +20,6 @@ export default function AvatarUpload({ currentAvatar, username, onAvatarChange }
     const file = e.target.files[0];
     if (!file) return;
 
-    // Генерируем уникальное имя файла, чтобы избежать проблем с кешированием в браузере
     const fileExt = file.name.split(".").pop();
     const fileName = `${user.id}-${Math.random()}.${fileExt}`;
     const filePath = `${fileName}`;
@@ -28,18 +27,15 @@ export default function AvatarUpload({ currentAvatar, username, onAvatarChange }
     setUploading(true);
 
     try {
-      // 1. Загружаем в Bucket "avatar"
       const { error: uploadError } = await supabase.storage
         .from("avatar")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // 2. Получаем URL
       const { data } = supabase.storage.from("avatar").getPublicUrl(filePath);
       const publicUrl = data.publicUrl;
 
-      // 3. Обновляем в таблице profiles
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ avatar_url: publicUrl })
@@ -47,7 +43,6 @@ export default function AvatarUpload({ currentAvatar, username, onAvatarChange }
 
       if (updateError) throw updateError;
 
-      // 4. Успех
       setAvatar(publicUrl);
       if (onAvatarChange) onAvatarChange(publicUrl);
     } catch (error: any) {
@@ -67,14 +62,12 @@ export default function AvatarUpload({ currentAvatar, username, onAvatarChange }
             className="avatar-img-preview"
           />
           
-          {/* Маска при наведении */}
           <div className="avatar-overlay">
             <span>{uploading ? "..." : "Изменить"}</span>
           </div>
         </div>
       </label>
 
-      {/* Скрытый инпут */}
       <input
         id="avatar-input"
         type="file"

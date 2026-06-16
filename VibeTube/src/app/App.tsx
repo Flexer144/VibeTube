@@ -7,7 +7,7 @@ import Home from "../pages/Home/Home";
 import Upload from "../pages/Upload/Upload";
 import Watch from "../pages/Watch/Watch";
 import Profile from "../pages/Profile/Profile";
-import AdminPanel from "../pages/Admin/AdminPanel"; // Создадим в следующей части
+import AdminPanel from "../pages/Admin/AdminPanel";
 
 import Layout from "./Layout";
 import { useAuth } from "./providers/AuthProvider";
