@@ -176,6 +176,7 @@ html::selection { color: white; background-color: rgb(99, 101, 241); }
     width: 100%;
     max-height: 80vh; 
   }
+  
   .ai-chat-wrapper {
     position: fixed; 
     bottom: 30px;

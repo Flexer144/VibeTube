@@ -31,6 +31,20 @@ export default function Profile() {
   const [isDeleting, setIsDeleting] = useState(false); 
   const [toasts, setToasts] = useState<any[]>([]);
 
+  useEffect(() => {
+    if (videoToDelete) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    };
+  }, [videoToDelete]);
 
   // Функция для показа уведомлений (Toast)
   const showToast = (type: 'error' | 'success', title: string, message: string) => {
