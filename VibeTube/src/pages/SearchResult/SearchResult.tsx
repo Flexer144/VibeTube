@@ -72,6 +72,7 @@ function SearchVideoItem({ video }: { video: any }) {
 
 export default function SearchResults() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const search = searchParams.get("q") || "";
 
   const [videos, setVideos] = useState<any[]>([]);
@@ -79,7 +80,6 @@ export default function SearchResults() {
 
   useEffect(() => {
     const fetchResults = async () => {
-      // Если нет поиска — нечего показывать
       if (!search) {
         setVideos([]);
         setLoading(false);
@@ -116,24 +116,25 @@ export default function SearchResults() {
     };
 
     fetchResults();
-  }, [search]); // <-- Зависимость только от search
+  }, [search]);
 
   if (loading) return <p style={{ textAlign: "center", marginTop: 50 }}>Поиск...</p>;
 
   return (
     <div className="search-results-container">
-      <h2 style={{ marginBottom: 25, fontSize: 20 }}>
-        Результаты поиска: "{search}"
-      </h2>
 
       {videos.length === 0 ? (
-        <div style={{ textAlign: "center", marginTop: 100 }}>
-          <h3>Ничего не найдено 😕</h3>
+        <div className="no-results">
+          <h3>Ничего не найдено</h3>
           <p>Попробуйте ввести другое название или жанр</p>
         </div>
       ) : (
         videos.map((video) => <SearchVideoItem key={video.id} video={video} />)
       )}
+
+      <button className="btn-no-search" onClick={() => navigate("/")}>
+                  На главную
+      </button>
     </div>
   );
 }

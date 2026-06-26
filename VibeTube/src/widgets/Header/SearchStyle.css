@@ -45,9 +45,11 @@
   outline: none;
   color: rgb(255, 255, 255);
   font-size: 15px;
+  -webkit-text-size-adjust: 100%;
 }
 .search-input:focus {
   outline: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 .search-form:focus-within {
@@ -55,7 +57,7 @@
 }
 
 .search-button {
-  padding: 8px 29px;
+  padding: 8px 15px;
   border: none;
   background-color: rgb(29, 29, 29);
   cursor: pointer;
@@ -64,13 +66,6 @@
 }
 .search-button:hover{
   background-color: rgb(46, 46, 46);
-}
-.search-button > img{
-    width: 24px;
-    height: 24px;
-    left: 16px;
-    top: 8px;
-    position: absolute;
 }
 
 /* === Выпадающие подсказки === */

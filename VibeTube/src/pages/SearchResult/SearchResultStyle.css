@@ -1,7 +1,45 @@
 .search-results-container {
-  max-width: 1100px;
-  margin: 20px auto;
-  padding: 0 20px;
+  width: 100%;
+  height: calc(100vh - 200px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.no-results {
+  text-align: center;
+}
+.no-results > p{
+  font-size: 19px;
+  color: #aaa;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+.no-results > h3{
+  font-size: 26px;
+  margin-bottom: 16px;
+}
+
+.btn-no-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 19px 40px;
+  border-radius: 12px;
+  margin-top: 30px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--pu-border);
+  color: var(--pu-text);
+}
+.btn-no-search:hover {
+  background-color: #2223534b;
+  border: 1px solid #6365F1;
 }
 
 .search-video-card {
@@ -12,7 +50,6 @@
   width: 100%;
 }
 
-/* Обертка для превью 16/9 в поиске */
 .search-thumb-wrapper {
   position: relative;
   width: 360px; /* Фиксированная ширина как на YT */

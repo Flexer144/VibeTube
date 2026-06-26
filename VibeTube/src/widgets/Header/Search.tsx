@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, SearchIcon } from "lucide-react";
 import './SearchStyle.css'
 import GengreIcon from '/GengreIcon.png'
 import videoIcon from '/videoIcon.png'
@@ -113,7 +113,7 @@ export default function Search({
         />
 
         <button type="submit" className="search-button">
-          <img src={searchIcon} alt="search--v1"/>
+          <SearchIcon size={24} color="#fff" />
         </button>
       </form>
 
