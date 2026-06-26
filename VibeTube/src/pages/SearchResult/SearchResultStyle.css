@@ -67,17 +67,18 @@
   flex-direction: column;
 }
 
+.search-video-meta-info-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
 .search-video-title {
   font-size: 18px;
   font-weight: 500;
   margin-bottom: 4px;
   color: #ffffff;
-}
-
-.search-video-meta {
-  font-size: 14px;
-  color: #aaa;
-  margin-bottom: 12px;
 }
 
 .search-author-block {
@@ -87,9 +88,15 @@
   margin-bottom: 12px;
 }
 
+.search-video-meta-info-wrapper > .search-video-meta{
+  font-size: 15px;
+  color: #aaa;
+}
+
 .search-author-avatar {
-  width: 26px;
-  height: 26px;
+  width: 35px;
+  height: 35px;
+  object-fit: cover;
   border-radius: 50%;
 }
 
@@ -101,4 +108,47 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.4;
+}
+
+/* === Адаптация под мобильные устройства (<=500px) === */
+@media screen and (max-width: 500px) {
+  .search-results-container {
+    max-width: 100%;
+    margin: 12px auto;
+    padding: 0 12px;
+  }
+
+  /* Заголовок "Результаты поиска: ..." задаётся инлайн-стилями,
+     смягчаем лишь отступ через контейнер выше */
+
+  .search-video-card {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  /* Превью на всю ширину вместо фиксированных 360px */
+  .search-thumb-wrapper {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search-video-info {
+    padding: 0 4px;
+  }
+
+  .search-video-title {
+    font-size: 16px;
+  }
+
+  .search-video-meta {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .search-description {
+    font-size: 14px;
+    margin-top: 6px;
+    -webkit-line-clamp: 2; /* на мобилке чуть больше текста */
+  }
 }

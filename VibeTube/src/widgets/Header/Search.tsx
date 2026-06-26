@@ -1,19 +1,38 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
+import { ArrowLeft } from "lucide-react";
 import './SearchStyle.css'
 import GengreIcon from '/GengreIcon.png'
 import videoIcon from '/videoIcon.png'
 import searchIcon from '/searchIcon.png'
 
-export default function Search() {
+export default function Search({
+  onNavigate,
+  autoFocus,
+  showBackButton,
+  onBack
+}: {
+  onNavigate?: () => void;
+  autoFocus?: boolean;
+  showBackButton?: boolean;
+  onBack?: () => void;
+}) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  
+
   const navigate = useNavigate();
   // Ссылка на обертку поиска, чтобы отслеживать клики вне её зоны
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Автофокус для мобильного оверлея поиска
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
 
   // 1. Закрываем список подсказок, если кликнули куда-то в другое место
   useEffect(() => {
@@ -58,10 +77,11 @@ export default function Search() {
   const cleanQuery = query.trim().replace(/\s+/g, ' ');
 
   if (!cleanQuery) return;
-  
+
   setShowDropdown(false);
   navigate(`/search?q=${cleanQuery}`);
   setQuery('');
+  onNavigate?.();
 };
   // Обработчик клика по конкретной подсказке из списка
   const handleSuggestionClick = (title: string) => {
@@ -69,11 +89,17 @@ export default function Search() {
     setShowDropdown(false);
     navigate(`/search?q=${title}`);
     setQuery('')
+    onNavigate?.();
   };
 
   return (
     <div ref={wrapperRef} className="search-wrapper">
       <form onSubmit={handleSearch} className="search-form">
+        {showBackButton && (
+          <button type="button" className="search-back-inside-btn" onClick={onBack} aria-label="Назад">
+            <ArrowLeft size={22} color="#fff" />
+          </button>
+        )}
         <input
           type="text"
           placeholder="Введите запрос..."
@@ -82,7 +108,8 @@ export default function Search() {
           onFocus={() => {
             if (suggestions.length > 0) setShowDropdown(true);
           }}
-          className="search-input"
+          className={`search-input ${showBackButton ? 'search-input--with-back' : ''}`}
+          ref={inputRef}
         />
 
         <button type="submit" className="search-button">
@@ -99,7 +126,10 @@ export default function Search() {
               onClick={() => handleSuggestionClick(item.title)}
               className="search-suggestion"
             >
-              {item.type === 'genre' ? <img className="search-suggestion-icon" src={GengreIcon}/> : <img className="search-suggestion-icon" src={videoIcon} alt="search--v1"/>} {item.title}
+              <div className="search-suggestion-icon-container">
+                {item.type === 'genre' ? <img className="search-suggestion-icon" src={GengreIcon}/> : <img className="search-suggestion-icon" src={videoIcon} alt="search--v1"/>}
+                {item.title}
+              </div>
             </li>
           ))}
         </ul>

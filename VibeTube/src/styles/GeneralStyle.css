@@ -169,6 +169,16 @@ html::selection { color: white; background-color: rgb(99, 101, 241); }
     display: none;
   }
 
+  /* Поиск внутри мобильного оверлея показываем */
+  .mobile-search-overlay .search-wrapper {
+    display: block;
+    flex: 1;
+  }
+  /* Список подсказок на всю ширину в оверлее */
+  .mobile-search-overlay .search-dropdown {
+    right: 0;
+  }
+
   .ai-chat-window {
     position: absolute;
     bottom: 0;

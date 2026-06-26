@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
 import Search from "../Header/Search";
 import { supabase } from "../../shared/lib/supabase";
-import { Menu, User, Settings, LogOut, ShieldAlert, Upload } from "lucide-react"; 
+import { Menu, User, Settings, LogOut, ShieldAlert, Upload, Search as SearchIcon } from "lucide-react"; 
 import { useEffect, useState, useRef } from "react";
 import "./HeaderStyle.css";
 
@@ -17,6 +17,7 @@ export default function Header({
   const [genres, setGenres] = useState<any[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   let closeTimeout: any;
 
   const currentGenreId = searchParams.get("genre");
@@ -120,8 +121,17 @@ export default function Header({
         </div>
 
         <div className="header-right">
+          <button
+            className="mobile-search-toggle-btn"
+            onClick={() => setIsMobileSearchOpen(true)}
+            aria-label="Поиск"
+            title="Поиск"
+          >
+            <SearchIcon size={24} color="#fff" />
+          </button>
+
           {profile?.role === 'admin' && (
-            <button 
+            <button
               className="admin-panel-icon-btn mobile-hidden"
               onClick={() => navigate("/admin")}
               title="Админ панель"
@@ -170,6 +180,17 @@ export default function Header({
             )}
           </div>
         </div>
+
+        {isMobileSearchOpen && (
+          <div className="mobile-search-overlay">
+            <Search
+              onNavigate={() => setIsMobileSearchOpen(false)}
+              autoFocus
+              showBackButton
+              onBack={() => setIsMobileSearchOpen(false)}
+            />
+          </div>
+        )}
       </div>
 
       {!isHideGenres && (

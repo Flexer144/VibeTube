@@ -45,24 +45,26 @@ function SearchVideoItem({ video }: { video: any }) {
 
       <div className="search-video-info">
         <h3 className="search-video-title">{video.title}</h3>
-        
-        <div className="search-video-meta">
-          {video.views || 0} просмотров • {timeAgo(video.created_at)}
-        </div>
-
-        <div className="search-author-block" onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/channel/${video.author_id}`);
-        }}>
-          <img
-            src={video.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${video.profiles?.username}`}
-            className="search-author-avatar"
-            alt="avatar"
-          />
-          <span style={{ fontSize: 13, color: "#aaa" }}>{video.profiles?.username}</span>
-        </div>
 
         <p className="search-description">{video.description || "Нет описания"}</p>
+
+        <div className="search-video-meta-info-wrapper">
+          <div className="search-author-block" onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/channel/${video.author_id}`);
+          }}>
+            <img
+              src={video.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${video.profiles?.username}`}
+              className="search-author-avatar"
+              alt="avatar"
+            />
+            <span style={{ fontSize: 15, color: "#aaa" }}>{video.profiles?.username}</span>
+          </div>
+
+          <div className="search-video-meta">
+            {video.views || 0} просмотров • {timeAgo(video.created_at)}
+          </div>
+        </div>
       </div>
     </div>
   );

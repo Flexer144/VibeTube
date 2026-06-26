@@ -8,30 +8,55 @@
 .search-form {
   display: flex;
   width: 100%;
+  border-radius: 20px;
+  border: 1px solid #cccccc44;
+  overflow: hidden;
+}
+
+/* Кнопка «назад» внутри инпута (мобильный оверлей) */
+.search-back-inside-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgb(15, 15, 15);
+  border: none;
+  border-right: 1px solid #cccccc44;
+  padding: 8px 7px 8px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.search-back-inside-btn:hover {
+  background: rgb(29, 29, 29);
+}
+
+/* Инпут со стрелкой внутри — без левого бордера и скругления */
+.search-input--with-back {
+  padding-left: 8px;
+  border-radius: 0 0 0 0;
+  border-left: none;
 }
 
 .search-input {
   flex: 1;
   padding: 12px 20px;
-  border-radius: 20px 0 0 20px;
-  border: 1px solid #cccccc44;
-  border-right: none;
+  border: none;
   background-color: rgb(15, 15, 15);
   outline: none;
   color: rgb(255, 255, 255);
   font-size: 15px;
 }
-.search-input:focus + .search-button {
-border-color: rgb(99, 101, 241);
+.search-input:focus {
+  outline: none;
 }
-.search-input:focus{
-border-color: rgb(99, 101, 241);
+
+.search-form:focus-within {
+  border-color: rgb(99, 101, 241);
 }
 
 .search-button {
   padding: 8px 29px;
-  border-radius: 0 20px 20px 0;
-  border: 1px solid #cccccc44;
+  border: none;
   background-color: rgb(29, 29, 29);
   cursor: pointer;
   position: relative;
@@ -48,43 +73,50 @@ border-color: rgb(99, 101, 241);
     position: absolute;
 }
 
+/* === Выпадающие подсказки === */
 .search-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 50px; 
-  background: rgba(255, 255, 255, 0.055); 
-  backdrop-filter: blur(12px); 
-  -webkit-backdrop-filter: blur(12px); 
+  right: 50px;
+  background: #0F0F0F;
   color: rgb(255, 255, 255);
   list-style: none;
-  padding: 0;
+  padding: 6px 0;
   margin: 4px 0 0 0;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
   z-index: 1000;
   overflow: hidden;
-  border: 1px solid rgba(160, 160, 160, 0.233);
+  border: 1px solid rgb(68, 70, 150);
 }
 
 .search-suggestion {
-  padding: 10px 16px 10px 40px;
+  padding: 10px 16px 10px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #383838;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 14px;
   text-align: left;
   position: relative;
+  transition: background-color 0.15s ease;
 }
+
+.search-suggestion:last-child {
+  border-bottom: none;
+}
+
 .search-suggestion > img{
     width: 24px;
     height: 24px;
-    left: 8px;
-    top: 6px;
-    position: absolute
+    align-items: center;
+    justify-content: center;
+}
+.search-suggestion-icon-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .search-suggestion:hover {
-  background: rgba(46, 47, 105, 0.315); 
-  backdrop-filter: blur(12px); 
-  -webkit-backdrop-filter: blur(12px); 
+  background: rgba(99, 101, 241, 0.15);
 }
