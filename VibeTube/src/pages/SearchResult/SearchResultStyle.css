@@ -1,10 +1,7 @@
 .search-results-container {
-  width: 100%;
-  height: calc(100vh - 200px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  max-width: 1100px;
+  margin: 20px auto;
+  padding: 0 20px;
 }
 .no-results {
   text-align: center;
@@ -106,8 +103,7 @@
 
 .search-video-meta-info-wrapper {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   margin-top: 12px;
 }
 
@@ -128,6 +124,7 @@
 .search-video-meta-info-wrapper > .search-video-meta{
   font-size: 15px;
   color: #aaa;
+  margin-bottom: 15px;
 }
 
 .search-author-avatar {
@@ -145,6 +142,13 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.4;
+}
+.no-results-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 200px);
 }
 
 /* === Адаптация под мобильные устройства (<=500px) === */
@@ -189,3 +193,4 @@
     -webkit-line-clamp: 2; /* на мобилке чуть больше текста */
   }
 }
+

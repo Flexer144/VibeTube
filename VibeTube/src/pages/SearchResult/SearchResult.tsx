@@ -49,6 +49,10 @@ function SearchVideoItem({ video }: { video: any }) {
         <p className="search-description">{video.description || "Нет описания"}</p>
 
         <div className="search-video-meta-info-wrapper">
+          <div className="search-video-meta">
+            {video.views || 0} просмотров • {timeAgo(video.created_at)}
+          </div>
+
           <div className="search-author-block" onClick={(e) => {
             e.stopPropagation();
             navigate(`/channel/${video.author_id}`);
@@ -59,10 +63,6 @@ function SearchVideoItem({ video }: { video: any }) {
               alt="avatar"
             />
             <span style={{ fontSize: 15, color: "#aaa" }}>{video.profiles?.username}</span>
-          </div>
-
-          <div className="search-video-meta">
-            {video.views || 0} просмотров • {timeAgo(video.created_at)}
           </div>
         </div>
       </div>
@@ -124,17 +124,19 @@ export default function SearchResults() {
     <div className="search-results-container">
 
       {videos.length === 0 ? (
-        <div className="no-results">
-          <h3>Ничего не найдено</h3>
-          <p>Попробуйте ввести другое название или жанр</p>
+        <div className="no-results-wrapper">
+          <div className="no-results">
+            <h3>Ничего не найдено</h3>
+            <p>Попробуйте ввести другое название или жанр</p>
+          </div>
+
+          <button className="btn-no-search" onClick={() => navigate("/")}>
+                      На главную
+          </button>
         </div>
       ) : (
         videos.map((video) => <SearchVideoItem key={video.id} video={video} />)
       )}
-
-      <button className="btn-no-search" onClick={() => navigate("/")}>
-                  На главную
-      </button>
     </div>
   );
 }
