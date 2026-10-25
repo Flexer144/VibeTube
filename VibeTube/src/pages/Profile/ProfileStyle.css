@@ -475,27 +475,6 @@
   to { transform: translateY(0); }
 }
 
-/* --- Варианты Уведомлений (Toast) --- */
-/* Твои базовые стили .toast-item остаются, мы добавляем модификаторы */
-
-.toast-item.error {
-  border-color: #ef4444;
-  background: rgba(17, 17, 11, 0.95);
-}
-
-.toast-item.error .toast-icon {
-  color: #ef4444;
-}
-
-.toast-item.success {
-  border-color: #22c55e;
-  background: rgba(17, 17, 11, 0.95);
-}
-
-.toast-item.success .toast-icon {
-  color: #22c55e;
-}
-
 @media (max-width: 500px) {
   /* --- 1. ШАПКА И БАННЕР --- */
   .profile-container {

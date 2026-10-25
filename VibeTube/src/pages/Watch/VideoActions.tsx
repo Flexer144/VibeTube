@@ -14,48 +14,58 @@ export default function VideoActions({ videoId }: { videoId: string }) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [disliked, setDisliked] = useState(false);
 
+  const [isPending, setIsPending] = useState(false);
+  const userId = user?.id;
+
   useEffect(() => {
+    let isCancelled = false;
+
+    const fetchLikes = async () => {
+      // Считаем лайки на сервере (head: true — без загрузки самих строк)
+      const [countRes, mineRes] = await Promise.all([
+        supabase.from("likes").select("id", { count: "exact", head: true }).eq("video_id", videoId),
+        userId
+          ? supabase.from("likes").select("id").eq("video_id", videoId).eq("user_id", userId).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+      if (isCancelled) return;
+
+      setLikesCount(countRes.count ?? 0);
+      setLiked(!!mineRes.data);
+    };
+
     fetchLikes();
-  }, [videoId]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [videoId, userId]);
 
-  const fetchLikes = async () => {
-    const { data } = await supabase
-      .from("likes")
-      .select("*")
-      .eq("video_id", videoId);
-
-    setLikesCount(data?.length || 0);
-
-    if (user) {
-      const isLiked = data?.some(l => l.user_id === user.id) ?? false;
-      setLiked(isLiked);
-    }
-  };
-
+  // Оптимистично: сразу меняем UI, при ошибке откатываем
   const toggleLike = async () => {
-    if (!user) return;
+    if (!user || isPending) return;
 
-    if (liked) {
-      await supabase
-        .from("likes")
-        .delete()
-        .match({ user_id: user.id, video_id: videoId });
-      setLiked(false);
-      setLikesCount(prev => prev - 1);
-      if (disliked) setDisliked(false);
-    } else {
-      await supabase
-        .from("likes")
-        .insert({ user_id: user.id, video_id: videoId });
-      setLiked(true);
-      setLikesCount(prev => prev + 1);
-      
+    const nextLiked = !liked;
+    setIsPending(true);
+    setLiked(nextLiked);
+    setLikesCount(prev => prev + (nextLiked ? 1 : -1));
+    if (disliked) setDisliked(false); // Лайк и дизлайк взаимоисключающие
+
+    if (nextLiked) {
       // Запускаем анимацию конфетти
       setIsAnimating(true);
       setTimeout(() => setIsAnimating(false), 1000); // Длительность анимации
-      
-      if (disliked) setDisliked(false); // Убираем дизлайк, если ставим лайк
     }
+
+    const { error } = nextLiked
+      ? await supabase.from("likes").insert({ user_id: user.id, video_id: videoId })
+      : await supabase.from("likes").delete().match({ user_id: user.id, video_id: videoId });
+
+    if (error) {
+      console.error("Не удалось изменить лайк:", error);
+      setLiked(!nextLiked);
+      setLikesCount(prev => prev - (nextLiked ? 1 : -1));
+    }
+    setIsPending(false);
   };
 
   const toggleDislike = () => {
@@ -74,6 +84,8 @@ export default function VideoActions({ videoId }: { videoId: string }) {
         <button 
             className={`action-btn like-btn ${liked ? 'active' : ''}`} 
             onClick={toggleLike}
+            aria-pressed={liked}
+            aria-label="Нравится"
         >
           <div className="icon-wrapper">
             <Heart 
@@ -104,6 +116,8 @@ export default function VideoActions({ videoId }: { videoId: string }) {
         <button 
             className={`action-btn dislike-btn ${disliked ? 'active' : ''}`} 
             onClick={toggleDislike}
+            aria-pressed={disliked}
+            aria-label="Не нравится"
         >
           <ThumbsDown 
             size={20} 

@@ -2,7 +2,8 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
-import VideoCard from "../../components/VideoCard/VideoCard";
+import { VIDEO_CARD_COLUMNS } from "../../shared/lib/videoColumns";
+import VideoCard, { type VideoCardData } from "../../components/VideoCard/VideoCard";
 import HomeSkeleton from "../../shared/Skeletons/HomeSkeleton.tsx";
 import { getHomeFeedCache, setHomeFeedCache } from "./homeFeedCache";
 import '../../styles/HomeStyle.css';
@@ -19,7 +20,7 @@ const shuffleArray = <T,>(array: T[]) => {
 export default function Home() {
   const { user, loading: isAuthLoading } = useAuth();
   const userId = user?.id;
-  const [videos, setVideos] = useState<any[]>([]);
+  const [videos, setVideos] = useState<VideoCardData[]>([]);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -43,7 +44,7 @@ export default function Home() {
       setIsVideoLoading(true);
       setHasError(false);
 
-      let query = supabase.from("video_search_view").select("*").order("created_at", { ascending: false }).limit(60);
+      let query = supabase.from("video_search_view").select(VIDEO_CARD_COLUMNS).order("created_at", { ascending: false }).limit(60);
       if (genreId !== "all") {
         query = query.contains("genre_ids", [genreId]);
       }
@@ -65,16 +66,13 @@ export default function Home() {
       }
 
       const subbedChannelIds = new Set((subsRes.data || []).map((sub) => sub.channel_id));
-      const formattedData = (videosRes.data || []).map(v => ({
-        ...v,
-        profiles: { username: v.author_username, avatar_url: v.author_avatar },
-        video_genres: v.genre_names?.map((name: string) => ({ genres: { name } })) || []
-      }));
+      const allVideos = videosRes.data || [];
+      const isSubbed = (v: VideoCardData) => !!v.author_id && subbedChannelIds.has(v.author_id);
 
       // Сначала видео с каналов, на которые пользователь подписан
       const finalVideos = [
-        ...shuffleArray(formattedData.filter(v => subbedChannelIds.has(v.author_id))),
-        ...shuffleArray(formattedData.filter(v => !subbedChannelIds.has(v.author_id))),
+        ...shuffleArray(allVideos.filter(isSubbed)),
+        ...shuffleArray(allVideos.filter((v) => !isSubbed(v))),
       ];
 
       setHomeFeedCache(cacheKey, finalVideos);

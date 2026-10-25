@@ -1,4 +1,6 @@
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import Avatar from "../../shared/ui/Avatar/Avatar";
+import { shouldShowGenres } from "../../shared/lib/layout";
 import { useAuth } from "../../app/providers/AuthProvider";
 import Search from "../Header/Search";
 import { supabase } from "../../shared/lib/supabase";
@@ -13,8 +15,7 @@ export default function Header({
   toggleSidebar?: () => void,
   isSidebarExpanded?: boolean 
 }) {
-  const [profile, setProfile] = useState<any>(null);
-  const [genres, setGenres] = useState<any[]>([]);
+  const [genres, setGenres] = useState<{ id: string; name: string }[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -24,7 +25,7 @@ export default function Header({
   const currentGenreId = searchParams.get("genre");
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -50,38 +51,31 @@ export default function Header({
     scrollRef.current.scrollLeft = scrollLeft - walk;
   };
 
-  const isHideGenres = location.pathname.startsWith("/search") || 
-                       location.pathname.startsWith("/video") || 
-                       location.pathname.startsWith("/channel") || 
-                       location.pathname.startsWith("/upload") ||
-                       location.pathname.startsWith("/admin"); 
+  const isHideGenres = !shouldShowGenres(location.pathname);
 
   useEffect(() => {
-    const loadHeaderData = async () => {
-      if (user) {
-        supabase.from("profiles").select("*").eq("id", user.id).single().then(({ data }) => setProfile(data));
-      }
+    const loadGenres = async () => {
+      // !inner оставляет только жанры, у которых есть хотя бы одно видео.
+      // Раньше ради этого загружалась вся таблица видео и фильтровалась на клиенте
+      const { data } = await supabase
+        .from("genres")
+        .select("id, name, video_genres!inner(id)")
+        .order("name");
 
-      const [{ data: allGenres }, { data: videosView }] = await Promise.all([
-        supabase.from("genres").select("*"),
-        supabase.from("video_search_view").select("search_genres_string")
-      ]);
-
-      if (allGenres && videosView) {
-        const activeGenres = allGenres.filter((genre) => {
-          return videosView.some((video) => 
-            video.search_genres_string && video.search_genres_string.includes(genre.name)
-          );
-        });
-        setGenres(activeGenres);
-      }
+      setGenres((data ?? []).map(({ id, name }) => ({ id, name })));
     };
-    loadHeaderData();
-  }, [user]);
-  
+    loadGenres();
+  }, []);
+
   const handleLogout = async () => {
+    setIsMenuOpen(false);
     await supabase.auth.signOut();
-    navigate("/login"); // Изменил на /login как у тебя в App.tsx
+    navigate("/login");
+  };
+
+  const goTo = (path: string) => {
+    setIsMenuOpen(false);
+    navigate(path);
   };
 
   const handleGenreChange = (id: string | null) => {
@@ -108,17 +102,42 @@ export default function Header({
     if (closeTimeout.current) clearTimeout(closeTimeout.current);
   }, []);
 
+  // Закрываем меню профиля по клику вне его и по Escape
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setIsMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isMenuOpen]);
+
   return (
     <div className={`header-wrapper ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
       <div className="header-top-bar">
         <div className="header-left">
-          <button className="menu-burger-btn" onClick={toggleSidebar}>
+          <button
+            className="menu-burger-btn"
+            onClick={toggleSidebar}
+            aria-label={isSidebarExpanded ? "Свернуть меню" : "Развернуть меню"}
+            aria-expanded={isSidebarExpanded}
+          >
             <Menu size={24} color="#fff" />
           </button>
-          
-          <div onClick={() => navigate("/")} style={{cursor: 'pointer'}}>
+
+          <Link to="/" className="logo-link" aria-label="VibeTube — на главную">
             <p className="logo-text">Vibe<span>Tube</span></p>
-          </div>
+          </Link>
         </div>
 
         <div className="header-center">
@@ -136,51 +155,58 @@ export default function Header({
           </button>
 
           {profile?.role === 'admin' && (
-            <button
+            <Link
+              to="/admin"
               className="admin-panel-icon-btn mobile-hidden"
-              onClick={() => navigate("/admin")}
               title="Админ панель"
+              aria-label="Админ панель"
             >
               <ShieldAlert size={20} />
-            </button>
+            </Link>
           )}
 
-          {/* Добавлен класс mobile-hidden */}
-          <button 
+          <Link
+            to="/upload"
             className="upload-icon-btn mobile-hidden"
-            onClick={() => navigate("/upload")}
             title="Загрузить видео"
+            aria-label="Загрузить видео"
           >
             <Upload size={20} />
-          </button>
-          
-          {/* Добавлен класс mobile-hidden */}
-          <div 
+          </Link>
+
+          {/* Меню открывается и наведением, и кликом/клавиатурой (раньше — только наведением) */}
+          <div
+            ref={menuRef}
             className="profile-menu-container mobile-hidden"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            <img 
-              src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username}`}
-              className="header-avatar"
-              alt="avatar"
-            />
+            <button
+              type="button"
+              className="header-avatar-btn"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={isMenuOpen}
+              aria-label="Меню профиля"
+            >
+              <Avatar src={profile?.avatar_url} name={profile?.username} className="header-avatar" />
+            </button>
 
             {isMenuOpen && (
-              <div className="profile-dropdown">
-                <div className="dropdown-item" onClick={() => navigate(`/channel/${user?.id}`)}>
+              <div className="profile-dropdown" role="menu">
+                <button type="button" role="menuitem" className="dropdown-item" onClick={() => goTo(`/channel/${user?.id}`)}>
                   <User size={18} />
                   <span>Мой профиль</span>
-                </div>
-                <div className="dropdown-item" onClick={() => navigate(`/channel/${user?.id}`)}>
+                </button>
+                <button type="button" role="menuitem" className="dropdown-item" onClick={() => goTo(`/channel/${user?.id}`)}>
                   <Settings size={18} />
                   <span>Настройки</span>
-                </div>
+                </button>
                 <div className="dropdown-divider"></div>
-                <div className="dropdown-item logout" onClick={handleLogout}>
+                <button type="button" role="menuitem" className="dropdown-item logout" onClick={handleLogout}>
                   <LogOut size={18} />
                   <span>Выйти</span>
-                </div>
+                </button>
               </div>
             )}
           </div>

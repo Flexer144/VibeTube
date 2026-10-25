@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
+import { VIDEO_CARD_COLUMNS } from "../../shared/lib/videoColumns";
 import { useAuth } from "../../app/providers/AuthProvider";
-import VideoCard from "../../components/VideoCard/VideoCard";
+import VideoCard, { type VideoCardData } from "../../components/VideoCard/VideoCard";
+import type { Tables } from "../../shared/types/database";
 import Carousel from "../../components/Carousel/Carousel"; 
 import AvatarUpload from "../Upload/UploadAvatar";
+import Avatar from "../../shared/ui/Avatar/Avatar";
 import { SubscribeButton } from "../../components/Button/SubscribeButton";
 import "./ProfileStyle.css"; 
 import { pluralize } from "../../shared/lib/pluralize";
@@ -12,26 +15,57 @@ import ProfileSkeleton from "../../shared/Skeletons/ProfileSkeleton.tsx";
 import { invalidateHomeFeed } from "../Home/homeFeedCache";
 import { removeVideoFiles } from "../../shared/lib/storage";
 
-import { AlertTriangle, CheckCircle, Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { useToast } from "../../shared/ui/Toast/ToastProvider";
 import { createPortal } from "react-dom";
+
+/** Видео по списку id в том же порядке, что и id (история и лайки отсортированы по дате) */
+const fetchVideosInOrder = async (ids: string[]): Promise<VideoCardData[]> => {
+  if (ids.length === 0) return [];
+  const { data } = await supabase.from("video_search_view").select(VIDEO_CARD_COLUMNS).in("id", ids);
+  const byId = new Map((data ?? []).map((v) => [v.id, v]));
+  return ids.map((id) => byId.get(id)).filter((v): v is NonNullable<typeof v> => !!v);
+};
+
+/** История просмотров и понравившиеся — только для своего канала */
+const fetchOwnLists = async (userId: string) => {
+  const [historyRes, likesRes] = await Promise.all([
+    supabase
+      .from("watch_history")
+      .select("video_id")
+      .eq("user_id", userId)
+      .order("viewed_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("likes")
+      .select("video_id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
+
+  const historyIds = (historyRes.data ?? []).map((h) => h.video_id);
+  const likedIds = (likesRes.data ?? []).map((l) => l.video_id).filter((id): id is string => !!id);
+  const [history, liked] = await Promise.all([fetchVideosInOrder(historyIds), fetchVideosInOrder(likedIds)]);
+  return { history, liked };
+};
 
 export default function Profile() {
   const { id: channelId } = useParams();
   const { user } = useAuth();
   const isOwnProfile = user?.id === channelId;
 
-  const [profileData, setProfileData] = useState<any>(null);
-  const [videos, setVideos] = useState<any[]>([]);
-  const [historyVideos, setHistoryVideos] = useState<any[]>([]);
-  const [likedVideos, setLikedVideos] = useState<any[]>([]);
+  const [profileData, setProfileData] = useState<Tables<"profiles"> | null>(null);
+  const [videos, setVideos] = useState<VideoCardData[]>([]);
+  const [historyVideos, setHistoryVideos] = useState<VideoCardData[]>([]);
+  const [likedVideos, setLikedVideos] = useState<VideoCardData[]>([]);
   const [subscribersCount, setSubscribersCount] = useState(0);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [videoToDelete, setVideoToDelete] = useState<any>(null); 
+  const [videoToDelete, setVideoToDelete] = useState<VideoCardData | null>(null);
   const [deletePassword, setDeletePassword] = useState(""); 
   const [isDeleting, setIsDeleting] = useState(false); 
-  const [toasts, setToasts] = useState<any[]>([]);
 
   useEffect(() => {
     if (videoToDelete) {
@@ -48,18 +82,9 @@ export default function Profile() {
     };
   }, [videoToDelete]);
 
-  // Функция для показа уведомлений (Toast)
-  const showToast = (type: 'error' | 'success', title: string, message: string) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, type, title, message, isLeaving: false }]);
-    
-    setTimeout(() => {
-      setToasts((prev) => prev.map((t) => t.id === id ? { ...t, isLeaving: true } : t));
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 500); // Ждем окончания анимации slideOutLeft
-    }, 4000); // Показываем 4 секунды
-  };
+  // Уведомления — общий ToastProvider
+  const toast = useToast();
+  const showToast = (type: 'error' | 'success', title: string, message: string) => toast(type, message, title);
 
   // Функция закрытия модалки
   const closeDeleteModal = () => {
@@ -70,7 +95,8 @@ export default function Profile() {
   // Функция подтверждения удаления
   const confirmDelete = async (e: React.MouseEvent) => {
   e.preventDefault();
-  if (!deletePassword || !user?.email || !videoToDelete) return;
+  if (!deletePassword || !user?.email || !videoToDelete?.id) return;
+  const deletedId = videoToDelete.id;
   
   setIsDeleting(true);
 
@@ -93,7 +119,7 @@ export default function Profile() {
     const { data: deletedRows, error: dbError } = await supabase
       .from("videos")
       .delete()
-      .eq("id", videoToDelete.id)
+      .eq("id", deletedId)
       .select("id");
 
     if (dbError) throw dbError;
@@ -103,7 +129,7 @@ export default function Profile() {
     await removeVideoFiles(videoToDelete);
 
     // 4. Успех! Сначала чистим UI, потом закрываем модалку
-    const removeDeleted = (list: any[]) => list.filter((v) => v.id !== videoToDelete.id);
+    const removeDeleted = (list: VideoCardData[]) => list.filter((v) => v.id !== deletedId);
     setVideos(removeDeleted);
     setHistoryVideos(removeDeleted);
     setLikedVideos(removeDeleted);
@@ -115,7 +141,7 @@ export default function Profile() {
       showToast('success', 'Удалено', 'Видео и все связанные данные стерты.');
     }, 200);
 
-  } catch (err: any) {
+  } catch (err) {
       console.error("Full delete error:", err);
       showToast('error', 'Ошибка', 'Не удалось полностью удалить видео.');
     } finally {
@@ -124,79 +150,59 @@ export default function Profile() {
   };
 
 
+  const userId = user?.id;
+
   useEffect(() => {
+    if (!channelId) return;
+    let isCancelled = false;
+
     const fetchProfileData = async () => {
-      if (!channelId) return;
       setLoading(true);
-      // Сбрасываем данные прошлого канала, чтобы они не мелькнули на новом
-      setHistoryVideos([]);
-      setLikedVideos([]);
-      setIsSubscribed(false);
 
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", channelId).maybeSingle();
-      setProfileData(profile);
-
-      const { data: uploadedVideos } = await supabase
-        .from("video_search_view")
-        .select("*")
-        .eq("author_id", channelId)
-        .order("created_at", { ascending: false });
-      setVideos(uploadedVideos || []);
-
-      const { count } = await supabase
-        .from("subscriptions")
-        .select("*", { count: "exact", head: true })
-        .eq("channel_id", channelId);
-      setSubscribersCount(count || 0);
-
-      if (user && !isOwnProfile) {
-        const { data: sub } = await supabase
+      // Независимые запросы идут параллельно (раньше — до 7 запросов друг за другом)
+      const [profileRes, videosRes, subsCountRes, mySubRes, ownLists] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", channelId).maybeSingle(),
+        supabase
+          .from("video_search_view")
+          .select(VIDEO_CARD_COLUMNS)
+          .eq("author_id", channelId)
+          .order("created_at", { ascending: false }),
+        supabase
           .from("subscriptions")
-          .select("id")
-          .eq("channel_id", channelId)
-          .eq("subscriber_id", user.id)
-          .maybeSingle();
-        setIsSubscribed(!!sub);
-      }
+          .select("id", { count: "exact", head: true })
+          .eq("channel_id", channelId),
+        userId && !isOwnProfile
+          ? supabase
+              .from("subscriptions")
+              .select("id")
+              .eq("channel_id", channelId)
+              .eq("subscriber_id", userId)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        isOwnProfile && userId ? fetchOwnLists(userId) : Promise.resolve({ history: [], liked: [] }),
+      ]);
 
-      if (isOwnProfile && user) {
-        const { data: history } = await supabase
-          .from("watch_history")
-          .select("video_id")
-          .eq("user_id", user.id)
-          .order("viewed_at", { ascending: false })
-          .limit(10);
+      // Пока шёл запрос, пользователь мог перейти на другой канал
+      if (isCancelled) return;
 
-        if (history && history.length > 0) {
-          const vIds = history.map((h) => h.video_id);
-          const { data: hVideos } = await supabase.from("video_search_view").select("*").in("id", vIds);
-          const sortedHistory = vIds.map(id => hVideos?.find(v => v.id === id)).filter(Boolean);
-          setHistoryVideos(sortedHistory);
-        }
-
-        const { data: likes } = await supabase
-          .from("likes")
-          .select("video_id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(10);
-
-        if (likes && likes.length > 0) {
-          const lIds = likes.map((l) => l.video_id);
-          const { data: lVideos } = await supabase.from("video_search_view").select("*").in("id", lIds);
-          const sortedLikes = lIds.map(id => lVideos?.find(v => v.id === id)).filter(Boolean);
-          setLikedVideos(sortedLikes);
-        }
-      }
+      setProfileData(profileRes.data);
+      setVideos(videosRes.data ?? []);
+      setSubscribersCount(subsCountRes.count ?? 0);
+      setIsSubscribed(!!mySubRes.data);
+      setHistoryVideos(ownLists.history);
+      setLikedVideos(ownLists.liked);
       setLoading(false);
     };
 
     fetchProfileData();
-  }, [channelId, isOwnProfile, user]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [channelId, isOwnProfile, userId]);
 
   // Возвращает true при успехе — от этого зависит анимация кнопки
   const handleToggleSubscribe = async () => {
-    if (!user) return false;
+    if (!user || !channelId) return false;
 
     const { error } = isSubscribed
       ? await supabase.from("subscriptions").delete().eq("channel_id", channelId).eq("subscriber_id", user.id)
@@ -238,11 +244,7 @@ export default function Profile() {
             />
           ) : (
             <div className="avatar-image-container">
-              <img 
-                src={profileData.avatar_url || `https://ui-avatars.com/api/?name=${profileData.username}`} 
-                className="avatar-img-preview" 
-                alt="Avatar" 
-              />
+              <Avatar src={profileData.avatar_url} name={profileData.username} className="avatar-img-preview" />
             </div>
           )}
           
@@ -350,26 +352,6 @@ export default function Profile() {
               </button>
             </div>
           </div>
-        </div>,
-        document.body
-      )}
-
-      {/* --- УВЕДОМЛЕНИЯ (TOASTS) --- */}
-      {createPortal(
-        <div className="toast-container">
-          {toasts.map((toast) => (
-            <div key={toast.id} className={`toast-item ${toast.type} ${toast.isLeaving ? 'leaving' : ''}`}>
-              {toast.type === 'error' ? (
-                <AlertTriangle className="toast-icon" size={20} />
-              ) : (
-                <CheckCircle className="toast-icon" size={20} />
-              )}
-              <div className="toast-content">
-                <h4 className="toast-title">{toast.title}</h4>
-                <p className="toast-message">{toast.message}</p>
-              </div>
-            </div>
-          ))}
         </div>,
         document.body
       )}

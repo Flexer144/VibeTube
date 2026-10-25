@@ -4,23 +4,15 @@ import { Search, Trash2, User, AlertCircle } from "lucide-react";
 import { removeVideoFiles } from "../../shared/lib/storage";
 import { escapeLike } from "../../shared/lib/escapeLike";
 import { invalidateHomeFeed } from "../Home/homeFeedCache";
+import type { Tables } from "../../shared/types/database";
+import { useToast } from "../../shared/ui/Toast/ToastProvider";
 import "./AdminPanel.css";
 
-type Profile = {
-  id: string;
-  username: string;
-  avatar_url: string;
-};
-
-type Video = {
-  id: string;
-  title: string;
-  thumbnail_url: string;
-  video_url: string;
-  author_id: string;
-};
+type Profile = Pick<Tables<"profiles">, "id" | "username" | "avatar_url">;
+type Video = Pick<Tables<"videos">, "id" | "title" | "thumbnail_url" | "video_url" | "author_id">;
 
 export default function AdminPanel() {
+  const showToast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<Profile[]>([]);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -51,11 +43,11 @@ export default function AdminPanel() {
   }, [searchQuery]);
 
   // Загрузка видео выбранного пользователя
+  // Без выбранного пользователя панель видео не показывается, поэтому сбрасывать список не нужно
   useEffect(() => {
-    if (!selectedUser) {
-      setVideos([]);
-      return;
-    }
+    if (!selectedUser) return;
+    // Если быстро переключиться на другого пользователя, ответ по старому не должен его перезаписать
+    let isCancelled = false;
 
     const fetchVideos = async () => {
       setLoadingVideos(true);
@@ -65,11 +57,15 @@ export default function AdminPanel() {
         .eq("author_id", selectedUser.id)
         .order("created_at", { ascending: false });
 
+      if (isCancelled) return;
       setVideos(data || []);
       setLoadingVideos(false);
     };
 
     fetchVideos();
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedUser]);
 
   // Удаление ролика и отправка уведомления
@@ -85,7 +81,7 @@ export default function AdminPanel() {
       .select("id");
 
     if (deleteError || !deletedRows?.length) {
-      alert("Ошибка при удалении видео");
+      showToast("error", "Не удалось удалить видео");
       console.error(deleteError ?? "Строка не удалена — проверьте права администратора");
       return;
     }
@@ -95,20 +91,23 @@ export default function AdminPanel() {
     invalidateHomeFeed();
 
     // 2. Отправляем уведомление автору
-    const { error: notifyError } = await supabase
-      .from("notifications")
-      .insert({
-        user_id: video.author_id,
-        title: "Нарушение правил площадки",
-        message: `Ваш ролик "${video.title}" был удален администратором за нарушение правил сообщества VibeTube.`,
-      });
+    if (video.author_id) {
+      const { error: notifyError } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: video.author_id,
+          title: "Нарушение правил площадки",
+          message: `Ваш ролик "${video.title}" был удален администратором за нарушение правил сообщества VibeTube.`,
+        });
 
-    if (notifyError) {
-      console.error("Ролик удален, но не удалось отправить уведомление:", notifyError);
+      if (notifyError) {
+        console.error("Ролик удален, но не удалось отправить уведомление:", notifyError);
+      }
     }
 
     // 3. Обновляем UI
     setVideos((prev) => prev.filter((v) => v.id !== video.id));
+    showToast("success", `Ролик «${video.title}» удалён, автор получил уведомление`);
   };
 
   return (

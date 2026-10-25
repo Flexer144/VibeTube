@@ -1,15 +1,5 @@
 /* pageUpload.css */
-:root {
-  --pu-bg: #0f0f0f; /* Твой основной темный цвет */
-  --pu-card-bg: rgba(255, 255, 255, 0.03);
-  --pu-border: rgba(255, 255, 255, 0.08);
-  --pu-primary: #6365f1; /* Твой фирменный индиго */
-  --pu-primary-hover: #5456d6;
-  --pu-secondary: #313169; /* Дополнительный темный сине-фиолетовый */
-  --pu-text: #ffffff;
-  --pu-text-muted: #a1a1aa;
-  --pu-radius: 10px;
-}
+/* Переменные --pu-* перенесены в GeneralStyle.css: их используют и другие страницы */
 
 /* ===== Общая обертка страницы ===== */
 .upload-page-wrapper {
@@ -396,64 +386,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- Стили уведомлений (Toast) --- */
-.toast-container {
-  position: fixed;
-  bottom: 30px;
-  left: 20px;
-  z-index: 10001;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  pointer-events: none;
-}
-
-.toast-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  min-width: 320px;
-  max-width: 450px;
-  padding: 16px 20px;
-  background: #11110b; 
-  border: 1px solid #7d5711; 
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
-  
-  animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.toast-item.leaving {
-  animation: slideOutLeft 0.5s cubic-bezier(0.7, 0, 0.84, 0) forwards;
-}
-
-.toast-icon {
-  color: #facc15;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.toast-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.toast-title {
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.toast-message {
-  color: #a1a1aa;
-  font-size: 14px;
-  line-height: 1.4;
-  margin: 0;
-}
-
 /* --- СТИЛИ ДЛЯ ЭКРАНА УСПЕХА --- */
 .success-container {
   display: flex;
@@ -524,36 +456,5 @@
   animation: fadeIn 0.4s ease-out forwards;
 }
 
-/* --- РАЗНЫЕ ТИПЫ TOAST УВЕДОМЛЕНИЙ --- */
 
-/* Предупреждение (Желтый - по умолчанию) */
-.toast-item.warning {
-  background: #11110b; 
-  border: 1px solid #7d5711; 
-}
-.toast-item.warning .toast-icon { color: #facc15; }
-
-/* Ошибка (Красный) */
-.toast-item.error {
-  background: #1a0f0f; 
-  border: 1px solid #7f1d1d; 
-}
-.toast-item.error .toast-icon { color: #ef4444; }
-
-/* Успех (Зеленый) */
-.toast-item.success {
-  background: #0f1a13; 
-  border: 1px solid #14532d; 
-}
-.toast-item.success .toast-icon { color: #22c55e; }
-
-@keyframes slideInLeft {
-  from { transform: translateX(-120%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideOutLeft {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(-120%); opacity: 0; }
-}
 

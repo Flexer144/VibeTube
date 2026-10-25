@@ -1,0 +1,122 @@
+/* --- Уведомления (Toast) — общие для всего приложения --- */
+.toast-container {
+  position: fixed;
+  bottom: 30px;
+  left: 20px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.toast-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 320px;
+  max-width: 450px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  animation: toastSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-item.leaving {
+  animation: toastSlideOut 0.5s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.toast-message {
+  color: #a1a1aa;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  display: flex;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.toast-close:hover {
+  color: #fff;
+}
+
+/* Предупреждение (жёлтый) */
+.toast-item.warning {
+  background: #11110b;
+  border: 1px solid #7d5711;
+}
+.toast-item.warning .toast-icon { color: #facc15; }
+
+/* Ошибка (красный) */
+.toast-item.error {
+  background: #1a0f0f;
+  border: 1px solid #7f1d1d;
+}
+.toast-item.error .toast-icon { color: #ef4444; }
+
+/* Успех (зелёный) */
+.toast-item.success {
+  background: #0f1a13;
+  border: 1px solid #14532d;
+}
+.toast-item.success .toast-icon { color: #22c55e; }
+
+@keyframes toastSlideIn {
+  from { transform: translateX(-120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toastSlideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-120%); opacity: 0; }
+}
+
+/* На телефоне — на всю ширину снизу, чтобы не вылезать за экран */
+@media (max-width: 500px) {
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+  }
+
+  .toast-item {
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-item,
+  .toast-item.leaving {
+    animation-duration: 0.01ms;
+  }
+}

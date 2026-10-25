@@ -1,4 +1,5 @@
-export function timeAgo(dateString: string) {
+export function timeAgo(dateString: string | null | undefined) {
+  if (!dateString) return "";
   const now = new Date();
 
   const normalized =

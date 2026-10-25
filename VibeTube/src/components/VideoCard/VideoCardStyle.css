@@ -173,3 +173,37 @@
   opacity: 0.6; /* Настрой яркость свечения (от 0.1 до 1) */
   transform: scale(1.05) translateY(10px); /* Свечение слегка расширяется и опускается */
 }
+/* --- Ссылки карточки --- */
+.video-card a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* «Растянутая» ссылка на видео: невидимый слой поверх всей карточки */
+.video-card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+/* Ссылки на канал — поверх растянутой ссылки, чтобы клик вёл на канал */
+.video-card-author-link {
+  position: relative;
+  z-index: 4;
+  width: fit-content;
+}
+
+/* Видимый фокус для навигации с клавиатуры */
+.video-card-link:focus-visible {
+  outline: none;
+}
+.video-card:has(.video-card-link:focus-visible) .thumbnail-wrapper {
+  outline: 3px solid var(--cl-base);
+  outline-offset: 3px;
+}
+.video-card-author-link:focus-visible {
+  outline: 2px solid var(--cl-base);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

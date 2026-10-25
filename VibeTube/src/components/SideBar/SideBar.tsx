@@ -1,53 +1,68 @@
 import { Home, Compass, PlaySquare, ThumbsUp, History, ListVideo, Upload, LogOut, User as UserIcon } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/providers/AuthProvider";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "../../shared/lib/supabase";
+import Avatar from "../../shared/ui/Avatar/Avatar";
 import './SideBarStyle.css';
 
-export default function SideBar({ 
-    isExpanded, 
-    setExpanded 
-}: { 
-    isExpanded: boolean, 
-    setExpanded: (val: boolean) => void 
+type Subscription = {
+    channel_id: string | null;
+    profiles: { username: string | null; avatar_url: string | null } | null;
+};
+
+function NavItem({ to, active, icon, label, className = "" }: {
+    to: string;
+    active?: boolean;
+    icon: ReactNode;
+    label: string;
+    className?: string;
+}) {
+    return (
+        <Link
+            to={to}
+            className={`nav-item ${active ? "active" : ""} ${className}`}
+            aria-current={active ? "page" : undefined}
+        >
+            {icon}
+            <span>{label}</span>
+        </Link>
+    );
+}
+
+export default function SideBar({
+    isExpanded,
+}: {
+    isExpanded: boolean,
 }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const [subscriptions, setSubscriptions] = useState<any[]>([]);
-    const [profile, setProfile] = useState<any>(null); // Для мобильного меню
+    const { user, profile } = useAuth();
+    const userId = user?.id;
+    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
-    const isActive = (path: string) => location.pathname === path ? "active" : "";
+    const isActive = (path: string) => location.pathname === path;
     const isWatchPage = location.pathname.startsWith('/video');
-    
-    useEffect(() => {
-        if (isWatchPage && isExpanded) {
-            setExpanded(false);
-        } else if(!isWatchPage && !isExpanded && window.innerWidth > 500){
-            // Не открываем меню автоматически на мобилках
-            setExpanded(true)
-        }
-    }, [isWatchPage]); 
+    const myChannel = `/channel/${userId}`;
 
+    // Подписки нужны только в развёрнутом меню — обновляем при каждом раскрытии,
+    // чтобы новая подписка сразу появилась в списке
     useEffect(() => {
-        if (user) {
-            // Подгружаем подписки
-            if (isExpanded) {
-                const fetchSubs = async () => {
-                    const { data, error } = await supabase
-                        .from('subscriptions')
-                        .select('channel_id, profiles:channel_id(username, avatar_url)')
-                        .eq('subscriber_id', user.id);
-                    if (!error && data) setSubscriptions(data);
-                };
-                fetchSubs();
-            }
-            // Подгружаем профиль для мобильной версии меню
-            supabase.from("profiles").select("*").eq("id", user.id).single()
-                .then(({ data }) => setProfile(data));
-        }
-    }, [user, isExpanded]);
+        if (!userId || !isExpanded) return;
+        let isCancelled = false;
+
+        supabase
+            .from('subscriptions')
+            .select('channel_id, profiles:profiles!subscriptions_channel_id_fkey(username, avatar_url)')
+            .eq('subscriber_id', userId)
+            .then(({ data, error }) => {
+                if (!error && !isCancelled) setSubscriptions(data ?? []);
+            });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [userId, isExpanded]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -55,92 +70,62 @@ export default function SideBar({
     };
 
     return (
-        <aside className={`side-bar 
-            ${isExpanded ? 'expanded' : 'collapsed'} 
-            ${isWatchPage ? 'overlay-mode' : 'standard-mode'}` 
-        }>
-            
+        <aside
+            className={`side-bar
+            ${isExpanded ? 'expanded' : 'collapsed'}
+            ${isWatchPage ? 'overlay-mode' : 'standard-mode'}`}
+            aria-label="Основное меню"
+        >
+
             {/* Блок профиля для мобильных устройств (скрыт на ПК через CSS) */}
             {isExpanded && (
                 <div className="mobile-profile-section">
-                    <div className="mobile-profile-header" onClick={() => navigate(`/channel/${user?.id}`)}>
-                        <img 
-                            src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username}`} 
-                            className="mobile-avatar" 
-                            alt="avatar" 
-                        />
+                    <Link to={myChannel} className="mobile-profile-header">
+                        <Avatar src={profile?.avatar_url} name={profile?.username} className="mobile-avatar" />
                         <span className="mobile-username">{profile?.username || 'Профиль'}</span>
-                    </div>
+                    </Link>
                     <nav className="sidebar-nav">
-                        <div className="nav-item" onClick={() => navigate("/upload")}>
-                            <Upload size={22} />
-                            <span>Загрузить видео</span>
-                        </div>
-                        <div className="nav-item" onClick={() => navigate(`/channel/${user?.id}`)}>
-                            <UserIcon size={22} />
-                            <span>Мой канал</span>
-                        </div>
-                        <div className="nav-item logout-mobile" onClick={handleLogout}>
+                        <NavItem to="/upload" icon={<Upload size={22} />} label="Загрузить видео" />
+                        <NavItem to={myChannel} icon={<UserIcon size={22} />} label="Мой канал" />
+                        <button type="button" className="nav-item logout-mobile" onClick={handleLogout}>
                             <LogOut size={22} />
                             <span>Выйти</span>
-                        </div>
+                        </button>
                     </nav>
                     <div className="sidebar-divider" />
                 </div>
             )}
 
             <nav className="sidebar-nav">
-                <div className={`nav-item ${isActive("/")}`} onClick={() => navigate("/")}>
-                    <Home size={22} />
-                    <span>Главная</span>
-                </div>
-                <div className={`nav-item ${isActive("/shorts")}`} onClick={() => navigate(`/channel/${user?.id}`)}>
-                    <Compass size={22} />
-                    <span>Vibes</span>
-                </div>
-                <div className={`nav-item ${isActive(`/subscriptions`)}`} onClick={() => navigate(`/channel/${user?.id}`)}>
-                    <PlaySquare size={22} />
-                    <span>Подписки</span>
-                </div>
+                <NavItem to="/" active={isActive("/")} icon={<Home size={22} />} label="Главная" />
+                <NavItem to={myChannel} icon={<Compass size={22} />} label="Vibes" />
+                <NavItem to={myChannel} icon={<PlaySquare size={22} />} label="Подписки" />
             </nav>
 
             {isExpanded && (
                 <>
                     <div className="sidebar-divider" />
-                    
+
                     <nav className="sidebar-nav">
                         <div className="section-title">Вы &gt;</div>
-                        <div className={`nav-item ${isActive("/history")}`} onClick={() => navigate(`/channel/${user?.id}`)}>
-                            <History size={22} />
-                            <span>История</span>
-                        </div>
-                        <div className={`nav-item ${isActive("/playlists")}`} onClick={() => navigate(`/channel/${user?.id}`)}>
-                            <ListVideo size={22} />
-                            <span>Плейлисты</span>
-                        </div>
-                        <div className={`nav-item ${isActive(`/liked`)}`} onClick={() => navigate(`/channel/${user?.id}`)}>
-                            <ThumbsUp size={22} />
-                            <span>Понравившиеся</span>
-                        </div>
+                        <NavItem to={myChannel} icon={<History size={22} />} label="История" />
+                        <NavItem to={myChannel} icon={<ListVideo size={22} />} label="Плейлисты" />
+                        <NavItem to={myChannel} icon={<ThumbsUp size={22} />} label="Понравившиеся" />
                     </nav>
 
                     <div className="sidebar-divider" />
 
-                    <nav className="sidebar-nav subs-list">
+                    <nav className="sidebar-nav subs-list" aria-label="Подписки">
                         <div className="section-title">Подписки</div>
-                        {subscriptions.map((sub: any) => (
-                            <div 
-                                key={sub.channel_id} 
-                                className={`nav-item ${isActive(`/channel/${sub.channel_id}`)}`} 
-                                onClick={() => navigate(`/channel/${sub.channel_id}`)}
+                        {subscriptions.map((sub) => (
+                            <Link
+                                key={sub.channel_id}
+                                to={`/channel/${sub.channel_id}`}
+                                className={`nav-item ${isActive(`/channel/${sub.channel_id}`) ? "active" : ""}`}
                             >
-                                <img 
-                                    src={sub.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${sub.profiles?.username}`} 
-                                    className="sub-avatar" 
-                                    alt="avatar"
-                                />
+                                <Avatar src={sub.profiles?.avatar_url} name={sub.profiles?.username} className="sub-avatar" />
                                 <span className="sub-name">{sub.profiles?.username}</span>
-                            </div>
+                            </Link>
                         ))}
                     </nav>
                 </>

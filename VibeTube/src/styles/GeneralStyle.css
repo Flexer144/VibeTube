@@ -267,3 +267,27 @@ html::selection { color: white; background-color: rgb(99, 101, 241); }
     box-sizing: border-box;
   }
 }
+
+/* Общий спиннер (плеер, загрузка видео) */
+.vibe-spinner {
+  animation: vibe-spin 1s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(99, 101, 241, 0.6)); /* Легкое свечение цвета --accent-color */
+}
+
+@keyframes vibe-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Токены, раньше объявленные в CSS страницы загрузки, но нужные и поиску */
+:root {
+  --pu-bg: #0f0f0f; /* Твой основной темный цвет */
+  --pu-card-bg: rgba(255, 255, 255, 0.03);
+  --pu-border: rgba(255, 255, 255, 0.08);
+  --pu-primary: #6365f1; /* Твой фирменный индиго */
+  --pu-primary-hover: #5456d6;
+  --pu-secondary: #313169; /* Дополнительный темный сине-фиолетовый */
+  --pu-text: #ffffff;
+  --pu-text-muted: #a1a1aa;
+  --pu-radius: 10px;
+}

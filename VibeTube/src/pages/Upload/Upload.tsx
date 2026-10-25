@@ -3,19 +3,17 @@ import { supabase } from "../../shared/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import '../../pages/Upload/Style/pageUpload.css';
 import GenreSelector from "./ComponentsUpload/GenreSelector";
-import Portal from "../../shared/ui/Portal";
 import { invalidateHomeFeed } from "../Home/homeFeedCache";
+import { useToast, type ToastType } from "../../shared/ui/Toast/ToastProvider";
 
-import { 
-  ChevronRight, 
-  ChevronLeft, 
-  UploadCloud, 
-  Image as ImageIcon, 
-  FileVideo, 
-  Check, 
+import {
+  ChevronRight,
+  ChevronLeft,
+  UploadCloud,
+  Image as ImageIcon,
+  FileVideo,
+  Check,
   Loader2,
-  AlertTriangle,
-  CheckCircle2
 } from "lucide-react";
 
 const formatDuration = (seconds: number) => {
@@ -29,14 +27,6 @@ const formatDuration = (seconds: number) => {
   return h > 0 ? `${h}:${mDisplay}:${sDisplay}` : `${mDisplay}:${sDisplay}`;
 };
 
-// Типизация для улучшенных тостов
-type ToastType = 'error' | 'success' | 'warning';
-interface ToastInfo {
-  id: number;
-  message: string;
-  type: ToastType;
-  isLeaving?: boolean;
-}
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -44,7 +34,7 @@ export default function Upload() {
   // --- Состояния данных ---
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [genres, setGenres] = useState<any[]>([]);
+  const [genres, setGenres] = useState<{ id: string; name: string }[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [videoDuration, setVideoDuration] = useState("");
   
@@ -56,9 +46,6 @@ export default function Upload() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false); // Новое состояние успеха
-
-  // Состояние для уведомлений (toasts)
-  const [toasts, setToasts] = useState<ToastInfo[]>([]);
 
   // Рефы для скрытых инпутов файлов
   const thumbInputRef = useRef<HTMLInputElement>(null);
@@ -113,21 +100,9 @@ export default function Upload() {
     setThumbnailFile(file);
   };
 
-  // --- Улучшенная функция для запуска уведомления ---
-  const triggerToast = (message: string, type: ToastType = 'warning') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-
-    // Запускаем анимацию ухода через 4 секунды
-    setTimeout(() => {
-      setToasts(prev => prev.map(t => t.id === id ? { ...t, isLeaving: true } : t));
-    }, 4000);
-
-    // Полностью удаляем из DOM через 4.5 секунды
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4500);
-  };
+  // --- Уведомления — общий ToastProvider ---
+  const showToast = useToast();
+  const triggerToast = (message: string, type: ToastType = 'warning') => showToast(type, message);
 
   // --- Логика переключения шагов ---
   const handleNext = () => {
@@ -245,7 +220,8 @@ export default function Upload() {
         triggerToast("Видео загружено успешно!", "success");
       }, 500);
 
-    } catch (err: any) {
+    } catch (error) {
+      const err = error as { message?: string };
       console.error("FULL ERROR:", err);
       return triggerToast(`Ошибка: ${err.message || "400 Bad Request"}`, 'error');
     } finally {
@@ -445,26 +421,6 @@ export default function Upload() {
           </div>
         )}
       </div>
-
-      <Portal>
-        <div className="toast-container">
-          {toasts.map((toast) => (
-            <div key={toast.id} className={`toast-item ${toast.type} ${toast.isLeaving ? 'leaving' : ''}`}>
-              {toast.type === 'success' ? (
-                <CheckCircle2 className="toast-icon" size={20} />
-              ) : (
-                <AlertTriangle className="toast-icon" size={20} />
-              )}
-              <div className="toast-content">
-                <h4 className="toast-title">
-                  {toast.type === 'error' ? 'Ошибка' : toast.type === 'success' ? 'Успешно' : 'Внимание'}
-                </h4>
-                <p className="toast-message">{toast.message}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Portal>
     </div>
   );
 }

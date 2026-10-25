@@ -1,9 +1,11 @@
+import type { VideoCardData } from "../../components/VideoCard/VideoCard";
+
 // Кэш ленты главной страницы на уровне модуля: живёт, пока открыта вкладка.
 // Нужен, чтобы при возврате «Назад» лента не перемешивалась заново.
 
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-let cache: { key: string; videos: any[]; createdAt: number } | null = null;
+let cache: { key: string; videos: VideoCardData[]; createdAt: number } | null = null;
 
 export const getHomeFeedCache = (key: string) => {
   if (!cache || cache.key !== key) return null;
@@ -14,7 +16,7 @@ export const getHomeFeedCache = (key: string) => {
   return cache.videos;
 };
 
-export const setHomeFeedCache = (key: string, videos: any[]) => {
+export const setHomeFeedCache = (key: string, videos: VideoCardData[]) => {
   cache = { key, videos, createdAt: Date.now() };
 };
 

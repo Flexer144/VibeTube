@@ -194,3 +194,61 @@
     display: inline-block;
   }
 }
+/* --- Ссылки в рекомендациях --- */
+.recommended-item {
+  position: relative;
+}
+
+.recommended-item a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Растянутая ссылка на видео: невидимый слой поверх всего элемента */
+.recommended-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.recommended-link:focus-visible {
+  outline: none;
+}
+.recommended-item:has(.recommended-link:focus-visible) .recommended-thumbnail {
+  outline: 3px solid var(--cl-base);
+  outline-offset: 2px;
+}
+
+/* Ссылки на канал — поверх растянутой ссылки */
+.recommended-channel-link {
+  position: relative;
+  z-index: 4;
+  width: fit-content;
+}
+
+/* Видео не найдено */
+.watch-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 50vh;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.watch-not-found p {
+  color: #aaa;
+}
+
+.watch-not-found-link {
+  margin-top: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  background: var(--cl-base);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}

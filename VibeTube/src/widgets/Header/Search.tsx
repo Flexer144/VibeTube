@@ -22,6 +22,8 @@ export default function Search({
 }) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  // Подсказки показываем только для запроса от 2 символов — без синхронного setState в эффекте
+  const visibleSuggestions = query.trim().length >= 2 ? suggestions : [];
   const [showDropdown, setShowDropdown] = useState(false);
 
   const navigate = useNavigate();
@@ -50,13 +52,8 @@ export default function Search({
   // 2. Эффект с Debounce для загрузки подсказок
   useEffect(() => {
     const term = query.trim();
-
-    // Короткий запрос — убираем старые подсказки, чтобы они не висели от прошлого ввода
-    if (term.length < 2) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
-    }
+    // Короткий запрос — не ищем; старые подсказки скрываются через visibleSuggestions ниже
+    if (term.length < 2) return;
 
     // Флаг отмены: ответ на устаревший запрос не должен перезаписать свежие подсказки
     let isCancelled = false;
@@ -115,7 +112,7 @@ export default function Search({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
-            if (suggestions.length > 0) setShowDropdown(true);
+            if (visibleSuggestions.length > 0) setShowDropdown(true);
           }}
           className={`search-input ${showBackButton ? 'search-input--with-back' : ''}`}
           ref={inputRef}
@@ -127,9 +124,9 @@ export default function Search({
       </form>
 
       {/* Выпадающий список с подсказками */}
-      {showDropdown && suggestions.length > 0 && (
+      {showDropdown && visibleSuggestions.length > 0 && (
         <ul className="search-dropdown">
-          {suggestions.map((item) => (
+          {visibleSuggestions.map((item) => (
             <li
               key={item.id}
               onClick={() => goToSearch(item.title)}

@@ -1,19 +1,21 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { useAuth } from "../../app/providers/AuthProvider";
 import { extractStoragePath } from "../../shared/lib/storage";
+import { useToast } from "../../shared/ui/Toast/ToastProvider";
+import Avatar from "../../shared/ui/Avatar/Avatar";
 
 const MAX_AVATAR_SIZE_MB = 5;
 
 interface AvatarUploadProps {
   currentAvatar: string | null;
-  username?: string;
+  username?: string | null;
   onAvatarChange?: (url: string) => void;
 }
 
 export default function AvatarUpload({ currentAvatar, username, onAvatarChange }: AvatarUploadProps) {
-  const { user } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, updateProfile } = useAuth();
+  const showToast = useToast();
   const [uploading, setUploading] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(currentAvatar);
 
@@ -25,7 +27,7 @@ export default function AvatarUpload({ currentAvatar, username, onAvatarChange }
     if (!file) return;
 
     if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
-      alert(`Файл слишком большой. Максимум — ${MAX_AVATAR_SIZE_MB} МБ`);
+      showToast("error", `Файл слишком большой. Максимум — ${MAX_AVATAR_SIZE_MB} МБ`);
       return;
     }
 
@@ -54,15 +56,19 @@ export default function AvatarUpload({ currentAvatar, username, onAvatarChange }
       if (updateError) throw updateError;
 
       setAvatar(publicUrl);
-      if (onAvatarChange) onAvatarChange(publicUrl);
+      onAvatarChange?.(publicUrl);
+      // Шапка и меню берут аватар из контекста — обновятся без перезагрузки
+      updateProfile({ avatar_url: publicUrl });
+      showToast("success", "Аватар обновлён");
 
       // Старый аватар больше не нужен — не копим мусор в бакете
       if (previousPath) {
         const { error: removeError } = await supabase.storage.from("avatar").remove([previousPath]);
         if (removeError) console.error("Не удалось удалить старый аватар:", removeError);
       }
-    } catch (error: any) {
-      alert(error.message || "Ошибка загрузки");
+    } catch (error) {
+      console.error("Ошибка загрузки аватара:", error);
+      showToast("error", "Не удалось загрузить аватар. Попробуйте ещё раз");
     } finally {
       setUploading(false);
     }
@@ -70,14 +76,10 @@ export default function AvatarUpload({ currentAvatar, username, onAvatarChange }
 
   return (
     <div className="avatar-upload-wrapper">
-      <label htmlFor="avatar-input" className="avatar-label">
+      <label htmlFor="avatar-input" className="avatar-label" title="Изменить аватар">
         <div className={`avatar-image-container ${uploading ? "loading" : ""}`}>
-          <img
-            src={avatar || `https://ui-avatars.com/api/?name=${username || "User"}`}
-            alt="avatar"
-            className="avatar-img-preview"
-          />
-          
+          <Avatar src={avatar} name={username} className="avatar-img-preview" />
+
           <div className="avatar-overlay">
             <span>{uploading ? "..." : "Изменить"}</span>
           </div>

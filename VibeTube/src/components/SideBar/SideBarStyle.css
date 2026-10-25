@@ -166,3 +166,23 @@
   text-overflow: ellipsis;
   font-size: 14px;
 }
+/* Пункты меню стали ссылками/кнопками — сбрасываем стандартные стили */
+.side-bar a.nav-item,
+.side-bar a.mobile-profile-header {
+  text-decoration: none;
+  color: #f1f1f1;
+}
+
+.side-bar button.nav-item {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+}
+
+.side-bar .nav-item:focus-visible,
+.side-bar .mobile-profile-header:focus-visible {
+  outline: 2px solid var(--cl-base);
+  outline-offset: -2px;
+}

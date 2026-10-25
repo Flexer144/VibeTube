@@ -1,73 +1,69 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense, type CSSProperties } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Header from "../widgets/Header/Header";
-import AIChat from '../widgets/AiChatBot/AIChat.tsx'
 import SideBar from "../components/SideBar/SideBar";
+import { useMediaQuery } from "../shared/lib/useMediaQuery";
+import { MOBILE_MEDIA_QUERY, shouldShowGenres } from "../shared/lib/layout";
+
+// Чат с ИИ (вместе с react-markdown) грузится отдельным чанком и не тормозит первую загрузку
+const AIChat = lazy(() => import("../widgets/AiChatBot/AIChat"));
 
 export default function Layout() {
-  // Инициализируем состояние в зависимости от ширины экрана
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(window.innerWidth > 500);
   const location = useLocation();
+  // Реагирует на изменение ширины окна (раньше window.innerWidth читался один раз при рендере)
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
 
   const isWatchPage = location.pathname.startsWith("/video");
   const isUploadPage = location.pathname.startsWith("/upload");
 
-  // Обработка ресайза и закрытие меню при навигации на мобилках
-  useEffect(() => {
-    // Если перешли на другую страницу на мобилке — закрываем меню
-    if (window.innerWidth <= 500) {
-      setIsSidebarExpanded(false);
-    } else if (isWatchPage) {
-      setIsSidebarExpanded(false);
-    }
-  }, [location.pathname, isWatchPage]);
+  // На ПК меню развёрнуто, на телефоне и на странице видео — свёрнуто
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => !isMobile && !isWatchPage);
+
+  // При переходе на другую страницу (и при смене ширины) возвращаем меню в состояние по умолчанию.
+  // Сравнение с прошлым ключом прямо во время рендера — рекомендуемый React-способ
+  // «сбросить состояние при смене пропса» без лишнего рендера через useEffect
+  const layoutKey = `${location.pathname}|${isMobile}`;
+  const [prevLayoutKey, setPrevLayoutKey] = useState(layoutKey);
+  if (layoutKey !== prevLayoutKey) {
+    setPrevLayoutKey(layoutKey);
+    setIsSidebarExpanded(!isMobile && !isWatchPage);
+  }
 
   // Блокировка прокрутки (scroll) при открытом меню на мобилках
   useEffect(() => {
-    if (window.innerWidth <= 500 && isSidebarExpanded) {
-      document.body.style.overflow = 'hidden'; // Запрещаем скролл
-    } else {
-      document.body.style.overflow = ''; // Возвращаем как было
-    }
-    
-    // Очистка при размонтировании
+    document.body.style.overflow = isMobile && isSidebarExpanded ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [isSidebarExpanded]);
+  }, [isMobile, isSidebarExpanded]);
 
-  const isHideGenres = 
-    location.pathname.startsWith("/search") || 
-    location.pathname.startsWith("/video") || 
-    location.pathname.startsWith("/channel") || 
-    location.pathname.startsWith("/admin") ||
-    isUploadPage;
-
-  const headerHeight = isHideGenres ? "66px" : "120px";
+  const headerHeight = shouldShowGenres(location.pathname) ? "120px" : "66px";
 
   return (
-    <div 
+    <div
       className="app-container"
-      style={{ "--header-height": headerHeight } as any}
+      style={{ "--header-height": headerHeight } as CSSProperties}
     >
-      <Header 
-        toggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)} 
-        isSidebarExpanded={isSidebarExpanded} 
+      <Header
+        toggleSidebar={() => setIsSidebarExpanded((expanded) => !expanded)}
+        isSidebarExpanded={isSidebarExpanded}
       />
-      <AIChat />
+      <Suspense fallback={null}>
+        <AIChat />
+      </Suspense>
       <div style={{ display: "flex", flex: 1, alignItems: "flex-start", position: "relative" }}>
-        
+
         {/* Оверлей (затемнение) для мобилок. Закрывает меню при клике вне него */}
-        <div 
+        <div
           className={`sidebar-mobile-overlay ${isSidebarExpanded ? 'active' : ''}`}
           onClick={() => setIsSidebarExpanded(false)}
         />
 
-        <SideBar setExpanded={setIsSidebarExpanded} isExpanded={isSidebarExpanded} />
+        <SideBar isExpanded={isSidebarExpanded} />
 
-        <main 
-          style={{ 
-            flex: 1, 
-            minWidth: 0, 
-            padding: isUploadPage ? "0" : (window.innerWidth <= 500 ? "10px 0" : "20px"), 
+        <main
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: isUploadPage ? "0" : (isMobile ? "10px 0" : "20px"),
             transition: "all 0.3s ease",
           }}
         >

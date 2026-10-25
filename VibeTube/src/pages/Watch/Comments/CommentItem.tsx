@@ -1,74 +1,67 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../../../shared/lib/supabase";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import CommentForm from "./CommentForm";
 import { timeAgo } from "../../../shared/utils/timeAgo";
 import { pluralize } from "../../../shared/lib/pluralize";
+import Avatar from "../../../shared/ui/Avatar/Avatar";
 import { ThumbsUp, ThumbsDown, ChevronDown, ChevronUp } from "lucide-react";
+import type { CommentData } from "./commentsData";
 import '../StyleWatch/CommentStyle.css';
 
-export default function CommentItem({
-  comment,
-  videoId,
-  onCommentAdded,
-}: {
-  comment: any;
+interface Props {
+  comment: CommentData;
   videoId: string;
-  onCommentAdded?: () => void;
-}) {
+  likedIds: Set<string>;
+  onLikeChange: (commentId: string, liked: boolean) => void;
+  onCommentAdded: () => void;
+}
+
+export default function CommentItem({ comment, videoId, likedIds, onLikeChange, onCommentAdded }: Props) {
   const { user } = useAuth();
 
-  const [likes, setLikes] = useState<number>(0);
-  const [liked, setLiked] = useState(false);
+  const liked = likedIds.has(comment.id);
+  // Сдвиг счётчика относительно значения с сервера — для мгновенного отклика.
+  // Привязан к base: когда придёт свежий счётчик с сервера, сдвиг автоматически обнулится
+  const [likeShift, setLikeShift] = useState({ base: comment.likesCount, delta: 0 });
+  const likesDelta = likeShift.base === comment.likesCount ? likeShift.delta : 0;
+  const setLikesDelta = (update: (d: number) => number) =>
+    setLikeShift((prev) => ({
+      base: comment.likesCount,
+      delta: update(prev.base === comment.likesCount ? prev.delta : 0),
+    }));
+  const [isLikePending, setIsLikePending] = useState(false);
   const [disliked, setDisliked] = useState(false); // Визуальный дизлайк
   const [showReplyForm, setShowReplyForm] = useState(false);
-  const [replies, setReplies] = useState<any[]>([]);
-  const [refresh, setRefresh] = useState(0);
   const [showReplies, setShowReplies] = useState(false);
 
-  // ---------- загрузка лайков ----------
-  const fetchLikes = async () => {
-    const { data } = await supabase
-      .from("comment_likes")
-      .select("*")
-      .eq("comment_id", comment.id);
+  const likes = Math.max(0, comment.likesCount + likesDelta);
+  const replies = comment.replies;
 
-    setLikes(data?.length ?? 0);
-
-    if (user) {
-      setLiked(data?.some((l) => l.user_id === user.id) ?? false);
-    }
-  };
-
-  const refreshReplies = () => {
-    setRefresh((r) => r + 1);
-    if (onCommentAdded) onCommentAdded(); // Обновляем общий счетчик, если нужно
-  };
-
-  // ---------- лайк ----------
+  // ---------- лайк (оптимистично: сразу меняем UI, при ошибке откатываем) ----------
   const toggleLike = async () => {
-    if (!user) return alert("Войдите, чтобы ставить оценки");
+    if (!user || isLikePending) return;
 
-    if (liked) {
-      await supabase
-        .from("comment_likes")
-        .delete()
-        .match({ user_id: user.id, comment_id: comment.id });
-      setLiked(false);
-      setLikes(prev => prev - 1);
-    } else {
-      await supabase.from("comment_likes").insert({
-        user_id: user.id,
-        comment_id: comment.id,
-      });
-      setLiked(true);
-      setLikes(prev => prev + 1);
-      if (disliked) setDisliked(false);
+    const nextLiked = !liked;
+    setIsLikePending(true);
+    onLikeChange(comment.id, nextLiked);
+    setLikesDelta((d) => d + (nextLiked ? 1 : -1));
+    if (nextLiked) setDisliked(false);
+
+    const { error } = nextLiked
+      ? await supabase.from("comment_likes").insert({ user_id: user.id, comment_id: comment.id })
+      : await supabase.from("comment_likes").delete().match({ user_id: user.id, comment_id: comment.id });
+
+    if (error) {
+      console.error("Не удалось изменить лайк:", error);
+      onLikeChange(comment.id, liked);
+      setLikesDelta((d) => d - (nextLiked ? 1 : -1));
     }
+    setIsLikePending(false);
   };
 
   const toggleDislike = () => {
-    if (!user) return alert("Войдите, чтобы ставить оценки");
+    if (!user) return;
     if (disliked) {
       setDisliked(false);
     } else {
@@ -77,31 +70,16 @@ export default function CommentItem({
     }
   };
 
-  // ---------- ответы ----------
-  const fetchReplies = async () => {
-    const { data } = await supabase
-      .from("comments")
-      .select(`*, profiles(username, avatar_url)`)
-      .eq("parent_id", comment.id)
-      .order("created_at");
-
-    setReplies(data || []);
+  const handleReplyAdded = () => {
+    setShowReplies(true);
+    onCommentAdded();
   };
-
-  useEffect(() => {
-    fetchLikes();
-    fetchReplies();
-  }, [refresh]);
 
   return (
     <div className="comment-item">
       {/* Аватарка автора комментария */}
       <div className="comment-avatar-container">
-        <img 
-          src={comment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${comment.profiles?.username || 'User'}`} 
-          alt="avatar" 
-          className="comment-user-avatar"
-        />
+        <Avatar src={comment.author?.avatar_url} name={comment.author?.username} className="comment-user-avatar" />
       </div>
 
       {/* Основной контент */}
@@ -109,11 +87,13 @@ export default function CommentItem({
         {/* Заголовок (Имя + Время) */}
         <div className="comment-header">
           <span className="comment-author-name">
-            {comment.profiles?.username || "Пользователь"}
+            {comment.author?.username || "Пользователь"}
           </span>
-          <span className="comment-time">
-            {timeAgo(comment.created_at)}
-          </span>
+          {comment.created_at && (
+            <span className="comment-time">
+              {timeAgo(comment.created_at)}
+            </span>
+          )}
         </div>
 
         {/* Текст */}
@@ -123,12 +103,24 @@ export default function CommentItem({
 
         {/* Панель действий */}
         <div className="comment-actions">
-          <button className={`comment-action-btn ${liked ? 'active' : ''}`} onClick={toggleLike}>
+          <button
+            className={`comment-action-btn ${liked ? 'active' : ''}`}
+            onClick={toggleLike}
+            disabled={!user}
+            aria-pressed={liked}
+            aria-label="Нравится"
+          >
             <ThumbsUp size={16} fill={liked ? "#f1f1f1" : "transparent"} />
             {likes > 0 && <span className="action-count">{likes}</span>}
           </button>
 
-          <button className={`comment-action-btn ${disliked ? 'active' : ''}`} onClick={toggleDislike}>
+          <button
+            className={`comment-action-btn ${disliked ? 'active' : ''}`}
+            onClick={toggleDislike}
+            disabled={!user}
+            aria-pressed={disliked}
+            aria-label="Не нравится"
+          >
             <ThumbsDown size={16} fill={disliked ? "#f1f1f1" : "transparent"} />
           </button>
 
@@ -142,7 +134,7 @@ export default function CommentItem({
           <CommentForm
             videoId={videoId}
             parentId={comment.id}
-            onCommentAdded={refreshReplies}
+            onCommentAdded={handleReplyAdded}
             onCancel={() => setShowReplyForm(false)}
           />
         )}
@@ -150,9 +142,10 @@ export default function CommentItem({
         {/* Кнопка Показать/Скрыть ответы */}
         {replies.length > 0 && (
           <div className="comment-replies-toggle">
-            <button 
-              className="show-replies-btn" 
+            <button
+              className="show-replies-btn"
               onClick={() => setShowReplies(!showReplies)}
+              aria-expanded={showReplies}
             >
               {showReplies ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               <span>{replies.length} {pluralize(replies.length, ['ответ', 'ответа', 'ответов'])}</span>
@@ -168,7 +161,9 @@ export default function CommentItem({
                 key={r.id}
                 comment={r}
                 videoId={videoId}
-                onCommentAdded={refreshReplies}
+                likedIds={likedIds}
+                onLikeChange={onLikeChange}
+                onCommentAdded={onCommentAdded}
               />
             ))}
           </div>

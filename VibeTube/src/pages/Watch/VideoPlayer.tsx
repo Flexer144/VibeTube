@@ -53,10 +53,10 @@ export default function VideoPlayer({ url, thumbnailUrl, onAutoplayNext }: Props
   const [seekSecondsCount, setSeekSecondsCount] = useState(0);
 
   // --- Таймеры (Refs) ---
-  const volumeTimeout = useRef<any>(null);
-  const seekTimeout = useRef<any>(null);
-  const centerTimeout = useRef<any>(null);
-  const idleTimeout = useRef<any>(null);
+  const volumeTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const seekTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const centerTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const idleTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // --- Логика управления ---
   const togglePlay = useCallback(() => {

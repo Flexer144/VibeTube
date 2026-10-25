@@ -194,3 +194,91 @@
   }
 }
 
+
+/* --- Ссылки в выдаче --- */
+.search-video-card {
+  position: relative;
+}
+
+.search-video-card a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Растянутая ссылка на видео: невидимый слой поверх всей карточки */
+.search-card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.search-card-link:focus-visible {
+  outline: none;
+}
+.search-video-card:has(.search-card-link:focus-visible) .search-thumb-wrapper {
+  outline: 3px solid var(--cl-base);
+  outline-offset: 3px;
+}
+
+/* Ссылка на канал — поверх растянутой ссылки */
+.search-author-block {
+  position: relative;
+  z-index: 4;
+  width: fit-content;
+}
+
+.search-author-name {
+  font-size: 15px;
+  color: #aaa;
+}
+
+.search-author-block:hover .search-author-name {
+  color: var(--cl-base);
+}
+
+.btn-no-search {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* --- Скелетон выдачи --- */
+@keyframes vibeShimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}
+
+.search-skeleton {
+  cursor: default;
+}
+
+.skeleton-block,
+.skeleton-line {
+  background: linear-gradient(90deg, #2a2a2a 0%, #3a3a3a 50%, #2a2a2a 100%);
+  background-size: 800px 100%;
+  animation: vibeShimmer 1.4s linear infinite;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  margin-bottom: 12px;
+  width: 80%;
+}
+
+.skeleton-line--title {
+  height: 22px;
+  width: 60%;
+  margin-bottom: 16px;
+}
+
+.skeleton-line--short {
+  width: 35%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block,
+  .skeleton-line {
+    animation: none;
+  }
+}

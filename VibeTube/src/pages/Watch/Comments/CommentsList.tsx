@@ -1,52 +1,55 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../shared/lib/supabase";
+import { useAuth } from "../../../app/providers/AuthProvider";
 import CommentItem from "./CommentItem";
 import CommentForm from "./CommentForm";
-import { ListFilter, X } from "lucide-react"; // Добавили X (крестик)
+import Avatar from "../../../shared/ui/Avatar/Avatar";
+import { ListFilter, X } from "lucide-react";
 import { pluralize } from "../../../shared/lib/pluralize";
+import { fetchCommentTree, fetchLikedCommentIds, type CommentData } from "./commentsData";
 import '../StyleWatch/CommentStyle.css';
 
-export default function CommentsList({
-  videoId,
-  refresh,
-}: {
-  videoId: string;
-  refresh?: number;
-}) {
-  const [comments, setComments] = useState<any[]>([]);
-  const [totalCommentsCount, setTotalCommentsCount] = useState<number>(0);
-  
+type SortMode = "new" | "top";
+
+/** Дерево комментариев + какие из них лайкнул текущий пользователь (2 запроса на всё видео) */
+const fetchCommentsState = async (videoId: string, userId: string | undefined) => {
+  const { roots, total, ids } = await fetchCommentTree(videoId);
+  const liked = userId ? await fetchLikedCommentIds(userId, ids) : new Set<string>();
+  return { roots, total, liked };
+};
+
+export default function CommentsList({ videoId }: { videoId: string }) {
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  const [comments, setComments] = useState<CommentData[]>([]);
+  const [totalCommentsCount, setTotalCommentsCount] = useState(0);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [sortMode, setSortMode] = useState<SortMode>("new");
+
   // Состояние для мобильного модального окна
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchComments = async () => {
-    const { data } = await supabase
-      .from("comments")
-      .select(`*, profiles(username, avatar_url)`)
-      .eq("video_id", videoId)
-      .is("parent_id", null)
-      .order("created_at", { ascending: false });
-
-    setComments(data || []);
-  };
-
-  const fetchTotalCount = async () => {
-    const { count, error } = await supabase
-      .from("comments")
-      .select('*', { count: 'exact', head: true })
-      .eq("video_id", videoId);
-      
-    if (!error && count !== null) {
-      setTotalCommentsCount(count);
-    }
-  };
+  // isStale — чтобы ответ по старому видео/пользователю не перезаписал актуальные данные
+  const loadComments = useCallback((isStale: () => boolean = () => false) =>
+    fetchCommentsState(videoId, userId)
+      .then(({ roots, total, liked }) => {
+        if (isStale()) return;
+        setComments(roots);
+        setTotalCommentsCount(total);
+        setLikedIds(liked);
+      })
+      .catch((error) => console.error("Не удалось загрузить комментарии:", error)),
+  [videoId, userId]);
 
   useEffect(() => {
-    fetchComments();
-    fetchTotalCount();
+    let isCancelled = false;
+    const isStale = () => isCancelled;
+    loadComments(isStale);
 
+    // Имя канала уникально для видео — иначе при переходе между видео подписки путаются
     const channel = supabase
-      .channel("comments-realtime")
+      .channel(`comments-${videoId}`)
       .on(
         "postgres_changes",
         {
@@ -55,17 +58,15 @@ export default function CommentsList({
           table: "comments",
           filter: `video_id=eq.${videoId}`,
         },
-        () => {
-          fetchComments();
-          fetchTotalCount();
-        }
+        () => loadComments(isStale)
       )
       .subscribe();
 
     return () => {
+      isCancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [videoId, refresh]);
+  }, [videoId, loadComments]);
 
   // Блокировка скролла страницы, когда мобильная шторка открыта
   useEffect(() => {
@@ -77,25 +78,40 @@ export default function CommentsList({
     return () => { document.body.style.overflow = ''; };
   }, [isModalOpen]);
 
-  // Берем самый первый комментарий для показа в тизере
-  const previewComment = comments.length > 0 ? comments[0] : null;
+  // Сортировка только верхнего уровня; ответы всегда по порядку
+  const sortedComments = useMemo(() => {
+    const list = [...comments];
+    if (sortMode === "top") {
+      list.sort((a, b) => b.likesCount - a.likesCount || (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    } else {
+      list.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    }
+    return list;
+  }, [comments, sortMode]);
+
+  const handleLikeChange = useCallback((commentId: string, liked: boolean) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (liked) next.add(commentId); else next.delete(commentId);
+      return next;
+    });
+  }, []);
+
+  // Берем самый свежий комментарий для показа в тизере
+  const previewComment = sortedComments[0] ?? null;
 
   return (
     <div className={`comments-section-wrapper ${isModalOpen ? 'modal-open' : ''}`}>
-      
+
       {/* 1. БЛОК-ТИЗЕР (ПОЯВЛЯЕТСЯ ТОЛЬКО НА ТЕЛЕФОНАХ) */}
-      <div className="comments-mobile-teaser" onClick={() => setIsModalOpen(true)}>
+      <button type="button" className="comments-mobile-teaser" onClick={() => setIsModalOpen(true)}>
         <div className="teaser-header">
           <span className="teaser-title">Комментарии</span>
           <span className="teaser-count">{totalCommentsCount}</span>
         </div>
         {previewComment ? (
           <div className="teaser-preview">
-            <img 
-              src={previewComment.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${previewComment.profiles?.username}`} 
-              alt="avatar" 
-              className="teaser-avatar" 
-            />
+            <Avatar src={previewComment.author?.avatar_url} name={previewComment.author?.username} className="teaser-avatar" />
             <span className="teaser-text">{previewComment.text}</span>
           </div>
         ) : (
@@ -103,7 +119,7 @@ export default function CommentsList({
              <span className="teaser-text" style={{color: '#888'}}>Оставьте первый комментарий...</span>
           </div>
         )}
-      </div>
+      </button>
 
       {/* ТЕМНЫЙ ФОН ПРИ ОТКРЫТОЙ ШТОРКЕ */}
       {isModalOpen && (
@@ -112,11 +128,11 @@ export default function CommentsList({
 
       {/* 2. ОСНОВНОЙ КОНТЕЙНЕР (НА ПК - ОБЫЧНЫЙ, НА ТЕЛЕФОНЕ - ШТОРКА) */}
       <div className="comments-main-container">
-        
+
         {/* ШАПКА ШТОРКИ С КРЕСТИКОМ (ТОЛЬКО НА ТЕЛЕФОНАХ) */}
         <div className="comments-modal-header">
           <span className="modal-title">Комментарии</span>
-          <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
+          <button className="modal-close-btn" onClick={() => setIsModalOpen(false)} aria-label="Закрыть комментарии">
             <X size={24} color="#f1f1f1" />
           </button>
         </div>
@@ -126,29 +142,30 @@ export default function CommentsList({
           <h3 className="comments-count">
             {totalCommentsCount} {pluralize(totalCommentsCount, ['Комментарий', 'Комментария', 'Комментариев'])}
           </h3>
-          <div className="comments-sort-btn">
+          <button
+            type="button"
+            className="comments-sort-btn"
+            onClick={() => setSortMode((mode) => (mode === "new" ? "top" : "new"))}
+            title="Изменить порядок"
+          >
             <ListFilter size={20} />
-            <span>Упорядочить</span>
-          </div>
+            <span>{sortMode === "new" ? "Сначала новые" : "Сначала популярные"}</span>
+          </button>
         </div>
 
         {/* ЗОНА ПРОКРУТКИ ВНУТРИ ШТОРКИ */}
         <div className="comments-scrollable-area">
-          <CommentForm 
-            videoId={videoId} 
-            onCommentAdded={() => {
-                fetchComments();
-                fetchTotalCount();
-            }} 
-          />
+          <CommentForm videoId={videoId} onCommentAdded={() => void loadComments()} />
 
           <div className="comments-list-container">
-            {comments.map((c) => (
+            {sortedComments.map((c) => (
               <CommentItem
                 key={c.id}
                 comment={c}
                 videoId={videoId}
-                onCommentAdded={fetchComments}
+                likedIds={likedIds}
+                onLikeChange={handleLikeChange}
+                onCommentAdded={() => void loadComments()}
               />
             ))}
           </div>

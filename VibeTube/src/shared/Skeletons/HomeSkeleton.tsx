@@ -1,7 +1,6 @@
-import React from "react"
-import ContentLoader from "react-content-loader"
+import ContentLoader, { type IContentLoaderProps } from "react-content-loader"
 
-const HomeSkeleton = (props: any) => (
+const HomeSkeleton = (props: IContentLoaderProps) => (
   <ContentLoader 
     speed={2}
     width="100%" 

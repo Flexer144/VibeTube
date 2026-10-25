@@ -1,12 +1,14 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { useAuth } from "../../app/providers/AuthProvider"; 
 
 import VideoPlayer from "./VideoPlayer";
 import VideoInfo from "./VideoInfo";
 import CommentsList from "./Comments/CommentsList";
-import CommentForm from "./Comments/CommentForm";
+import Avatar from "../../shared/ui/Avatar/Avatar";
+import PageLoader from "../../shared/ui/PageLoader/PageLoader";
+import { fetchRecommended, fetchWatchVideo, type RecommendedVideo, type WatchVideo } from "./watchData";
 import { timeAgo } from "../../shared/utils/timeAgo";
 import "../../pages/Watch/StyleWatch/WatchStyle.css";
 import { pluralize } from "../../shared/lib/pluralize";
@@ -16,10 +18,9 @@ export default function Watch() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [video, setVideo] = useState<any>(null);
+  const [video, setVideo] = useState<WatchVideo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [commentsRefresh, setCommentsRefresh] = useState(0);
-  const [recommended, setRecommended] = useState<any[]>([]);
+  const [recommended, setRecommended] = useState<RecommendedVideo[]>([]);
   const [subscribersCount, setSubscribersCount] = useState<number>(0);
 
 
@@ -27,9 +28,22 @@ export default function Watch() {
      Загрузка видео
   =========================== */
   useEffect(() => {
-    if (id) {
-      fetchVideo();
-    }
+    if (!id) return;
+    // Если пользователь быстро перешёл к другому видео, ответ по старому id игнорируем
+    let isCancelled = false;
+
+    const fetchVideo = async () => {
+      setLoading(true);
+      const { data } = await fetchWatchVideo(id);
+      if (isCancelled) return;
+      setVideo(data);
+      setLoading(false);
+    };
+
+    fetchVideo();
+    return () => {
+      isCancelled = true;
+    };
   }, [id]);
 
    useEffect(() => {
@@ -53,80 +67,42 @@ export default function Watch() {
     recordHistory();
   }, [video, user]);
 
-  const fetchVideo = async () => {
-    setLoading(true);
-
-    const { data } = await supabase
-      .from("videos")
-      .select(`
-        *,
-        profiles(username, avatar_url),
-        video_genres(
-          genres(name,id)
-        )
-      `)
-      .eq("id", id)
-      .single();
-
-    setVideo(data);
-    setLoading(false);
-  };
-
   /* ===========================
      Получение подписчиков
   =========================== */
-  const fetchSubscribers = useCallback(async () => {
-    if (!video?.author_id) return;
-
-    const { count, error } = await supabase
-      .from("subscriptions")
-      .select("*", { count: "exact", head: true })
-      .eq("channel_id", video.author_id);
-
-    if (!error && typeof count === "number") {
-      setSubscribersCount(count);
-    }
-  }, [video?.author_id]);
-
+  const authorId = video?.author_id;
   useEffect(() => {
-    fetchSubscribers();
-  }, [fetchSubscribers]);
+    if (!authorId) return;
+    let isCancelled = false;
+
+    supabase
+      .from("subscriptions")
+      .select("id", { count: "exact", head: true })
+      .eq("channel_id", authorId)
+      .then(({ count, error }) => {
+        if (!isCancelled && !error && typeof count === "number") setSubscribersCount(count);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authorId]);
 
   /* ===========================
      Рекомендованные видео
   =========================== */
   useEffect(() => {
-    const fetchRecommended = async () => {
-      const { data, error } = await supabase
-        .from("videos")
-        .select(`
-          id,
-          title,
-          thumbnail_url,
-          views,
-          created_at,
-          profiles(id, username, avatar_url)
-        `)
-        .neq("id", id)
-        .order("created_at", { ascending: false })
-        .limit(20);
+    if (!id) return;
+    let isCancelled = false;
 
-      if (!error && data) {
-        setRecommended(data);
-      }
+    fetchRecommended(id).then(({ data, error }) => {
+      if (!isCancelled && !error && data) setRecommended(data);
+    });
+
+    return () => {
+      isCancelled = true;
     };
-
-    if (id) {
-      fetchRecommended();
-    }
   }, [id]);
-
-  /* ===========================
-     Обновление комментариев
-  =========================== */
-  const refreshComments = () => {
-    setCommentsRefresh((prev) => prev + 1);
-  };
 
   /* ===========================
      Инкремент просмотров
@@ -159,8 +135,16 @@ export default function Watch() {
 
   /* =========================== */
 
-  if (loading) return <p>Загрузка...</p>;
-  if (!video) return <p>Видео не найдено</p>;
+  if (loading) return <PageLoader />;
+  if (!video) {
+    return (
+      <div className="watch-not-found">
+        <h2>Видео не найдено</h2>
+        <p>Возможно, его удалили или ссылка неверная.</p>
+        <Link to="/" className="watch-not-found-link">На главную</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="watch-page-container">
@@ -171,7 +155,7 @@ export default function Watch() {
           <VideoPlayer
             key={video.id}
             url={video.video_url}
-            thumbnailUrl={video.thumbnail_url}
+            thumbnailUrl={video.thumbnail_url ?? undefined}
             onAutoplayNext={recommended.length > 0 ? () => navigate(`/video/${recommended[0].id}`) : undefined}
           />
         </div>
@@ -180,11 +164,10 @@ export default function Watch() {
           <VideoInfo
             video={video}
             subscribersCount={subscribersCount}
-            onSubscriptionChange={fetchSubscribers}
+            onSubscriptionChange={(delta) => setSubscribersCount((count) => Math.max(0, count + delta))}
           />
           <CommentsList
             videoId={video.id}
-            refresh={commentsRefresh}
           />
         </div>
       </div>
@@ -196,41 +179,30 @@ export default function Watch() {
             <div
               key={video.id}
               className="recommended-item"
-              onClick={() => navigate(`/video/${video.id}`)}
             >
               {/* Превью видео */}
               <img
-                src={video.thumbnail_url}
-                alt={video.title}
+                src={video.thumbnail_url || "/placeholder.jpg"}
+                alt=""
                 className="recommended-thumbnail"
+                loading="lazy"
               />
-              
+
               {/* Контейнер для аватара и инфы под ним на мобилках */}
               <div className="recommended-content-block">
-                <img
-                  src={video.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${video.profiles?.username}`}
-                  alt="avatar"
-                  className="recommended-avatar"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/channel/${video.profiles?.id}`);
-                  }}
-                />
-                
+                <Link to={`/channel/${video.profiles?.id}`} className="recommended-channel-link" aria-label={`Канал ${video.profiles?.username ?? ""}`}>
+                  <Avatar src={video.profiles?.avatar_url} name={video.profiles?.username} className="recommended-avatar" />
+                </Link>
+
                 <div className="recommended-info">
-                  <div className="recommended-title">{video.title}</div>
-                  
+                  {/* Растянутая ссылка: кликабелен весь элемент, ссылки на канал лежат поверх */}
+                  <Link to={`/video/${video.id}`} className="recommended-title recommended-link">{video.title}</Link>
+
                   {/* Обертка для автора и статистики */}
                   <div className="recommended-details">
-                    <div
-                      className="recommended-author"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/channel/${video.profiles?.id}`);
-                      }}
-                    >
+                    <Link to={`/channel/${video.profiles?.id}`} className="recommended-author recommended-channel-link">
                       {video.profiles?.username}
-                    </div>
+                    </Link>
                     <div className="recommended-stats">
                       {video.views ?? 0} {pluralize(video.views ?? 0, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
                     </div>

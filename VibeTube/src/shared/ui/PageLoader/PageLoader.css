@@ -1,0 +1,27 @@
+.page-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  width: 100%;
+}
+
+.page-loader--fullscreen {
+  min-height: 100vh;
+  background: #0f0f0f;
+}
+
+.page-loader__spinner {
+  color: var(--cl-base);
+  animation: pageLoaderSpin 0.9s linear infinite;
+}
+
+@keyframes pageLoaderSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-loader__spinner {
+    animation-duration: 2.5s;
+  }
+}

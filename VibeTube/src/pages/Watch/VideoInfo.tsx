@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { useAuth } from "../../app/providers/AuthProvider";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Avatar from "../../shared/ui/Avatar/Avatar";
 import { pluralize } from "../../shared/lib/pluralize";
 import { timeAgo } from "../../shared/utils/timeAgo";
 import VideoActions from "./VideoActions";
 import { SubscribeButton } from "../../components/Button/SubscribeButton"; 
+import type { WatchVideo } from "./watchData";
 import "./StyleWatch/VideoInfoStyle.css";
 
 interface Props {
-  video: any;
+  video: WatchVideo;
   subscribersCount: number;
-  onSubscriptionChange: () => void;
+  /** +1 при подписке, -1 при отписке — родитель обновляет счётчик без лишнего запроса */
+  onSubscriptionChange: (delta: 1 | -1) => void;
 }
 
 export default function VideoInfo({
@@ -44,7 +47,7 @@ export default function VideoInfo({
 
   // Возвращает true при успехе — от этого зависит анимация кнопки
   const handleToggleSubscribe = async () => {
-    if (!user) return false;
+    if (!user || !channelId) return false;
 
     const { error } = isSubscribed
       ? await supabase
@@ -63,7 +66,7 @@ export default function VideoInfo({
     }
 
     setIsSubscribed(!isSubscribed);
-    onSubscriptionChange(); // Уведомляем родителя об изменении счетчика
+    onSubscriptionChange(isSubscribed ? -1 : 1);
     return true;
   };
 
@@ -72,7 +75,7 @@ export default function VideoInfo({
     if (!text) return null;
     
     // Регулярка ищет ссылки или слова, начинающиеся с @
-    const regex = /(https?:\/\/[^\s]+|@[\w\.]+)/g;
+    const regex = /(https?:\/\/[^\s]+|@[\w.]+)/g;
     const parts = text.split(regex);
 
     return parts.map((part, index) => {
@@ -105,19 +108,15 @@ export default function VideoInfo({
       <div className="video-primary-row">
         {/* АВТОР И ПОДПИСКА (Слева на ПК, верхний ряд на мобилках) */}
         <div className="author-and-subscribe">
-          <div className="author-details" onClick={() => navigate(`/channel/${channelId}`)}>
-            <img
-              src={video.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${video.profiles?.username}`}
-              alt="avatar"
-              className="author-avatar"
-            />
+          <Link to={`/channel/${channelId}`} className="author-details">
+            <Avatar src={video.profiles?.avatar_url} name={video.profiles?.username} className="author-avatar" />
             <div className="author-text">
               <div className="author-name-video">{video.profiles?.username}</div>
               <div className="author-subs">
                 {subscribersCount} {pluralize(subscribersCount, ['подписчик', 'подписчика', 'подписчиков'])}
               </div>
             </div>
-          </div>
+          </Link>
 
           <div className="action-wrapper">
             {/* ЛАЙКИ И ДИЗЛАЙКИ (Справа на ПК, отдельный ряд на мобилках) */}
@@ -147,7 +146,7 @@ export default function VideoInfo({
           <span>{timeAgo(video.created_at)}</span>
         </div>
         <div className="desc-content">{parseText(video.description || "Нет описания")}</div>
-        {!isDescExpanded && video.description?.length > 100 && <div className="desc-show-more">...ещё</div>}
+        {!isDescExpanded && (video.description?.length ?? 0) > 100 && <div className="desc-show-more">...ещё</div>}
         {isDescExpanded && <div className="desc-show-less" onClick={(e) => { e.stopPropagation(); setIsDescExpanded(false); }}>Свернуть</div>}
       </div>
     </div>

@@ -43,14 +43,16 @@ export default function AIChat() {
 
   // Инициализация шейдера для кнопки "Жидкий металл"
   useEffect(() => {
-    let shaderInstance: any;
+    let shaderInstance: { dispose: () => void } | undefined;
+    // Если чат открыли до того, как модуль шейдеров загрузился, — не создаём лишний WebGL-контекст
+    let isCancelled = false;
 
     const initShader = async () => {
       try {
         // Динамический импорт: шейдеры попадают в отдельный чанк и не тормозят первую загрузку
         const { liquidMetalFragmentShader, ShaderMount } = await import('@paper-design/shaders');
-        
-        if (liquidMetalRef.current && !isOpen) {
+
+        if (liquidMetalRef.current && !isCancelled) {
           shaderInstance = new ShaderMount(
             liquidMetalRef.current,
             liquidMetalFragmentShader,
@@ -81,9 +83,10 @@ export default function AIChat() {
     }
 
     return () => {
-      if (shaderInstance && typeof shaderInstance.destroy === 'function') {
-        shaderInstance.destroy();
-      }
+      isCancelled = true;
+      // У ShaderMount метод называется dispose (destroy не существует) —
+      // раньше WebGL-контекст не освобождался при каждом открытии чата
+      shaderInstance?.dispose();
     };
   }, [isOpen]);
 

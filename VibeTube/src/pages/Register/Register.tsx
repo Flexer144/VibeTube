@@ -1,10 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
 import { escapeLike } from "../../shared/lib/escapeLike";
+import { useTubesCursor } from "../../shared/lib/useTubesCursor";
 
 // Подключаем общий CSS, где лежат стили для фона, карточки и курсора
-import '../../styles/pageRegister.css'; 
+import "../../styles/pageLogin.css"; // общие стили auth-страниц: фон, курсор, кнопка
+import "../../styles/pageRegister.css";
 
 import eye from "../../assets/icon/eye.png";
 import eyeHide from "../../assets/icon/eyeHide.png";
@@ -39,48 +41,8 @@ export default function Register() {
 
   const navigate = useNavigate();
 
-  // --- Инициализация 3D-курсора (как в Login) ---
-  useEffect(() => {
-    let cursorApp: any = null;
-    let isCancelled = false; 
-
-    const initCursor = async () => {
-      try {
-        // @ts-ignore 
-        const module = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js");
-        
-        if (isCancelled) return;
-
-        const TubesCursor = module.default;
-        if (canvasRef.current) {
-          cursorApp = TubesCursor(canvasRef.current, {
-            tubes: {
-              colors: ["#6366f1", "#8b5cf6", "#3b82f6"],
-              lights: {
-                intensity: 200,
-                colors: ["#a5b4fc", "#c4b5fd", "#93c5fd", "#ffffff"]
-              }
-            }
-          });
-        }
-      } catch (error) {
-        console.warn("WebGPU Cursor Error:", error);
-      }
-    };
-
-    initCursor();
-
-    return () => {
-      isCancelled = true;
-      if (cursorApp && typeof cursorApp.destroy === 'function') {
-        cursorApp.destroy();
-      }
-      if (canvasRef.current) {
-        const gl = canvasRef.current.getContext('webgl2') || canvasRef.current.getContext('webgl');
-        if (gl) gl.getExtension('WEBGL_lose_context')?.loseContext();
-      }
-    };
-  }, []);
+  // --- 3D-курсор (общий хук с Login) ---
+  useTubesCursor(canvasRef);
 
   // 1. Валидация Email
   const validateEmail = (email: string) => {
@@ -98,7 +60,7 @@ export default function Register() {
 
   // 3. Валидация Пароля (8-30 символов, обязательно наличие латинских букв)
   const validatePassword = (pass: string) => {
-    return String(pass).match(/^(?=.*[a-zA-Z])[a-zA-Z0-9!@#$%^&*()_+=\-{}\[\]:;"'<>,.?\/|\\~`]{8,30}$/);
+    return String(pass).match(/^(?=.*[a-zA-Z])[a-zA-Z0-9!@#$%^&*()_+=\-{}[\]:;"'<>,.?/|\\~`]{8,30}$/);
   };
 
   // --- Memoized проверки ---

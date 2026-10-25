@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { loginUser } from "../../features/auth/login";
 import { Link, useNavigate } from "react-router-dom";
+import { useTubesCursor } from "../../shared/lib/useTubesCursor";
 import '../../styles/pageLogin.css';
 import eye from "../../assets/icon/eye.png"
 import eyeHide from "../../assets/icon/eyeHide.png"
@@ -18,53 +19,7 @@ export default function Login() {
   const navigate = useNavigate();
 
 
- useEffect(() => {
-  let cursorApp: any = null;
-  let isCancelled = false; // Флаг для отмены, если компонент размонтировался
-
-  const initCursor = async () => {
-    try {
-      // @ts-ignore 
-      const module = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/threejs-components@0.0.19/build/cursors/tubes1.min.js");
-      
-      // Если пока мы грузили модуль, пользователь уже ушел со страницы — выходим
-      if (isCancelled) return;
-
-      const TubesCursor = module.default;
-      if (canvasRef.current) {
-        cursorApp = TubesCursor(canvasRef.current, {
-          tubes: {
-            colors: ["#6366f1", "#8b5cf6", "#3b82f6"],
-            lights: {
-              intensity: 200,
-              colors: ["#a5b4fc", "#c4b5fd", "#93c5fd", "#ffffff"]
-            }
-          }
-        });
-      }
-    } catch (error) {
-      console.warn("WebGPU Cursor Error:", error);
-    }
-  };
-
-  initCursor();
-
-  return () => {
-    isCancelled = true;
-    if (cursorApp) {
-      // Пытаемся полностью остановить рендер
-      if (typeof cursorApp.destroy === 'function') {
-        cursorApp.destroy();
-      }
-      cursorApp = null;
-    }
-    // Очищаем контекст canvas вручную, если библиотека этого не делает
-    if (canvasRef.current) {
-      const gl = canvasRef.current.getContext('webgl2') || canvasRef.current.getContext('webgl');
-      if (gl) gl.getExtension('WEBGL_lose_context')?.loseContext();
-    }
-  };
-}, []);
+  useTubesCursor(canvasRef);
 
 
   const validateEmail = (email: string) => {

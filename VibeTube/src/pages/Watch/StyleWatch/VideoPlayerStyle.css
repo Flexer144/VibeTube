@@ -324,15 +324,7 @@ video {
   pointer-events: none; /* Чтобы клики проходили сквозь лоадер к видео */
 }
 
-.vibe-spinner {
-  animation: vibe-spin 1s linear infinite;
-  filter: drop-shadow(0 0 8px rgba(99, 101, 241, 0.6)); /* Легкое свечение цвета --accent-color */
-}
-
-@keyframes vibe-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+/* .vibe-spinner перенесён в GeneralStyle.css — он нужен и странице загрузки */
 
 
 @media screen and (max-width: 500px) {

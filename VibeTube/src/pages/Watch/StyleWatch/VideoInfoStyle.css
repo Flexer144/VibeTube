@@ -217,3 +217,8 @@
   font-size: 14px;
 }
 }
+/* Блок автора стал ссылкой */
+a.author-details {
+  text-decoration: none;
+  color: inherit;
+}

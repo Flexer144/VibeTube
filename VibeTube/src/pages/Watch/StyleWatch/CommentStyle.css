@@ -466,3 +466,22 @@
   .comment-text { font-size: 13px; margin-bottom: 6px; }
   .comment-action-btn { width: 28px; height: 28px; }
 }
+/* Тизер стал <button> (доступен с клавиатуры) — сбрасываем стандартные стили кнопки */
+button.comments-mobile-teaser {
+  width: 100%;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.comment-action-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.comment-form-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #ff6b6b;
+}
