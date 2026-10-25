@@ -5,7 +5,9 @@ import { ArrowLeft, SearchIcon } from "lucide-react";
 import './SearchStyle.css'
 import GengreIcon from '/GengreIcon.png'
 import videoIcon from '/videoIcon.png'
-import searchIcon from '/searchIcon.png'
+import { escapeLike } from "../../shared/lib/escapeLike";
+
+type Suggestion = { id: string; title: string; type: 'video' | 'genre' };
 
 export default function Search({
   onNavigate,
@@ -19,7 +21,7 @@ export default function Search({
   onBack?: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const navigate = useNavigate();
@@ -47,49 +49,56 @@ export default function Search({
 
   // 2. Эффект с Debounce для загрузки подсказок
   useEffect(() => {
+    const term = query.trim();
+
+    // Короткий запрос — убираем старые подсказки, чтобы они не висели от прошлого ввода
+    if (term.length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    // Флаг отмены: ответ на устаревший запрос не должен перезаписать свежие подсказки
+    let isCancelled = false;
+    const pattern = `%${escapeLike(term)}%`;
+
     const fetchSuggestions = async () => {
-      if (query.trim().length < 2) return;
-
       const [videoRes, genreRes] = await Promise.all([
-        supabase.from("videos").select("title").ilike("title", `%${query.trim()}%`).limit(3),
-        supabase.from("genres").select("name").ilike("name", `%${query.trim()}%`).limit(2)
+        supabase.from("videos").select("id, title").ilike("title", pattern).limit(3),
+        supabase.from("genres").select("id, name").ilike("name", pattern).limit(2)
       ]);
+      if (isCancelled) return;
 
-      const videoHints = videoRes.data?.map(v => ({ title: v.title, type: 'video' })) || [];
-      const genreHints = genreRes.data?.map(g => ({ title: g.name, type: 'genre' })) || [];
+      const videoHints: Suggestion[] = videoRes.data?.map(v => ({ id: `video-${v.id}`, title: v.title, type: 'video' })) || [];
+      const genreHints: Suggestion[] = genreRes.data?.map(g => ({ id: `genre-${g.id}`, title: g.name, type: 'genre' })) || [];
 
       setSuggestions([...videoHints, ...genreHints]);
       setShowDropdown(true);
     };
 
-    // Устанавливаем таймер
-    const timer = setTimeout(() => {
-      fetchSuggestions();
-    }, 300); // 300 мс — оптимальная задержка
+    // Debounce: ждём, пока пользователь перестанет печатать
+    const timer = setTimeout(fetchSuggestions, 300);
 
-    // Очищаем таймер, если пользователь продолжает печатать
-    return () => clearTimeout(timer);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
   }, [query]);
 
-  const handleSearch = (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  const cleanQuery = query.trim().replace(/\s+/g, ' ');
+  const goToSearch = (rawQuery: string) => {
+    const cleanQuery = rawQuery.trim().replace(/\s+/g, ' ');
+    if (!cleanQuery) return;
 
-  if (!cleanQuery) return;
-
-  setShowDropdown(false);
-  navigate(`/search?q=${cleanQuery}`);
-  setQuery('');
-  onNavigate?.();
-};
-  // Обработчик клика по конкретной подсказке из списка
-  const handleSuggestionClick = (title: string) => {
-    setQuery(title);
     setShowDropdown(false);
-    navigate(`/search?q=${title}`);
-    setQuery('')
+    // encodeURIComponent — иначе «&», «#» или «?» в запросе обрежут его
+    navigate(`/search?q=${encodeURIComponent(cleanQuery)}`);
+    setQuery('');
     onNavigate?.();
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    goToSearch(query);
   };
 
   return (
@@ -123,11 +132,11 @@ export default function Search({
           {suggestions.map((item) => (
             <li
               key={item.id}
-              onClick={() => handleSuggestionClick(item.title)}
+              onClick={() => goToSearch(item.title)}
               className="search-suggestion"
             >
               <div className="search-suggestion-icon-container">
-                {item.type === 'genre' ? <img className="search-suggestion-icon" src={GengreIcon}/> : <img className="search-suggestion-icon" src={videoIcon} alt="search--v1"/>}
+                <img className="search-suggestion-icon" src={item.type === 'genre' ? GengreIcon : videoIcon} alt="" />
                 {item.title}
               </div>
             </li>

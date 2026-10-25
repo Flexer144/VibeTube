@@ -9,6 +9,8 @@ import { SubscribeButton } from "../../components/Button/SubscribeButton";
 import "./ProfileStyle.css"; 
 import { pluralize } from "../../shared/lib/pluralize";
 import ProfileSkeleton from "../../shared/Skeletons/ProfileSkeleton.tsx";
+import { invalidateHomeFeed } from "../Home/homeFeedCache";
+import { removeVideoFiles } from "../../shared/lib/storage";
 
 import { AlertTriangle, CheckCircle, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -85,60 +87,27 @@ export default function Profile() {
       return;
     }
 
-    // 2. Удаляем файлы из Storage
-    // Мы делаем это ПЕРЕД удалением из БД, так как нам нужны ссылки на файлы
-    const extractPath = (url: string, bucket: string) => {
-      if (!url) return null;
-      try {
-        // 1. Разбиваем по названию бакета
-        const parts = url.split(`${bucket}/`);
-        if (parts.length < 2) return null;
-
-        // 2. Убираем всё, что идет после знака вопроса (query параметры типа ?t=123)
-        const pathWithPotentialParams = parts[1];
-        const pathWithoutParams = pathWithPotentialParams.split('?')[0];
-
-        // 3. Декодируем символы (например, %20 превращаем в пробел)
-        const finalPath = decodeURIComponent(pathWithoutParams);
-        
-        // 4. Убираем ведущий слэш, если он вдруг появился
-        return finalPath.startsWith('/') ? finalPath.substring(1) : finalPath;
-      } catch (e) {
-        console.error("Ошибка парсинга пути:", e);
-        return null;
-      }
-    };
-    
-   // 2. Удаляем файлы из Storage
-    const videoPath = extractPath(videoToDelete.video_url, 'videos');
-    const thumbPath = extractPath(videoToDelete.thumbnail_url, 'thumbnails');
-
-    // ВАЖНО: Проверь эти строки в консоли!
-    console.log("ПОЛНЫЙ ПУТЬ ВИДЕО ДЛЯ УДАЛЕНИЯ:", `"${videoPath}"`);
-    console.log("ПОЛНЫЙ ПУТЬ ПРЕВЬЮ ДЛЯ УДАЛЕНИЯ:", `"${thumbPath}"`);
-    
-    if (videoPath) {
-      const { data, error: vErr } = await supabase.storage.from('videos').remove([videoPath]);
-      if (vErr) console.error("Ошибка удаления видео:", vErr);
-      else console.log("Видео успешно удалено из бакета:", data);
-    }
-    
-    if (thumbPath) {
-      const { data, error: tErr } = await supabase.storage.from('thumbnails').remove([thumbPath]);
-      if (tErr) console.error("Ошибка удаления превью:", tErr);
-      else console.log("Превью успешно удалено из бакета:", data);
-    }
-
-    // 3. Удаляем запись из БД (Cascade Delete в БД сам почистит лайки/комменты)
-    const { error: dbError } = await supabase
+    // 2. Сначала удаляем запись из БД (каскад почистит лайки/комменты/историю).
+    // Если сначала удалить файлы, а БД вернёт ошибку — останется «битое» видео без файлов.
+    // .select() нужен, чтобы убедиться, что строка реально удалена (RLS может молча отфильтровать её).
+    const { data: deletedRows, error: dbError } = await supabase
       .from("videos")
       .delete()
-      .eq("id", videoToDelete.id);
+      .eq("id", videoToDelete.id)
+      .select("id");
 
     if (dbError) throw dbError;
+    if (!deletedRows || deletedRows.length === 0) throw new Error("Видео не удалено: нет прав или оно уже удалено");
+
+    // 3. Теперь удаляем файлы. Ошибка здесь не критична: видео уже не видно на сайте
+    await removeVideoFiles(videoToDelete);
 
     // 4. Успех! Сначала чистим UI, потом закрываем модалку
-    setVideos((prev) => prev.filter((v) => v.id !== videoToDelete.id));
+    const removeDeleted = (list: any[]) => list.filter((v) => v.id !== videoToDelete.id);
+    setVideos(removeDeleted);
+    setHistoryVideos(removeDeleted);
+    setLikedVideos(removeDeleted);
+    invalidateHomeFeed();
     closeDeleteModal();
     
     // Показываем тост после закрытия модалки
@@ -157,10 +126,14 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchProfileData = async () => {
-      setLoading(true);
       if (!channelId) return;
+      setLoading(true);
+      // Сбрасываем данные прошлого канала, чтобы они не мелькнули на новом
+      setHistoryVideos([]);
+      setLikedVideos([]);
+      setIsSubscribed(false);
 
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", channelId).single();
+      const { data: profile } = await supabase.from("profiles").select("*").eq("id", channelId).maybeSingle();
       setProfileData(profile);
 
       const { data: uploadedVideos } = await supabase
@@ -182,11 +155,11 @@ export default function Profile() {
           .select("id")
           .eq("channel_id", channelId)
           .eq("subscriber_id", user.id)
-          .single();
+          .maybeSingle();
         setIsSubscribed(!!sub);
       }
 
-      if (isOwnProfile) {
+      if (isOwnProfile && user) {
         const { data: history } = await supabase
           .from("watch_history")
           .select("video_id")
@@ -221,17 +194,22 @@ export default function Profile() {
     fetchProfileData();
   }, [channelId, isOwnProfile, user]);
 
+  // Возвращает true при успехе — от этого зависит анимация кнопки
   const handleToggleSubscribe = async () => {
-    if (!user) return alert("Войдите в аккаунт");
-    if (isSubscribed) {
-      await supabase.from("subscriptions").delete().eq("channel_id", channelId).eq("subscriber_id", user.id);
-      setIsSubscribed(false);
-      setSubscribersCount((prev) => prev - 1);
-    } else {
-      await supabase.from("subscriptions").insert({ channel_id: channelId, subscriber_id: user.id });
-      setIsSubscribed(true);
-      setSubscribersCount((prev) => prev + 1);
+    if (!user) return false;
+
+    const { error } = isSubscribed
+      ? await supabase.from("subscriptions").delete().eq("channel_id", channelId).eq("subscriber_id", user.id)
+      : await supabase.from("subscriptions").insert({ channel_id: channelId, subscriber_id: user.id });
+
+    if (error) {
+      showToast('error', 'Ошибка', isSubscribed ? 'Не удалось отписаться.' : 'Не удалось подписаться.');
+      return false;
     }
+
+    setIsSubscribed(!isSubscribed);
+    setSubscribersCount((prev) => prev + (isSubscribed ? -1 : 1));
+    return true;
   };
 
   // 2. ЗАМЕНЯЕМ СТАРУЮ СТРОКУ ЗАГРУЗКИ НА НАШ СКЕЛЕТОН

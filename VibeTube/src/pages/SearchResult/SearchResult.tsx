@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
 import { timeAgo } from "../../shared/utils/timeAgo";
+import { pluralize } from "../../shared/lib/pluralize";
+import { escapeLike, quoteFilterValue } from "../../shared/lib/escapeLike";
 import "../SearchResult/SearchResultStyle.css";
 
 // Внутренний компонент для каждой карточки
@@ -50,7 +52,7 @@ function SearchVideoItem({ video }: { video: any }) {
 
         <div className="search-video-meta-info-wrapper">
           <div className="search-video-meta">
-            {video.views || 0} просмотров • {timeAgo(video.created_at)}
+            {video.views || 0} {pluralize(video.views || 0, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
           </div>
 
           <div className="search-author-block" onClick={(e) => {
@@ -79,23 +81,29 @@ export default function SearchResults() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchResults = async () => {
-      if (!search) {
+      const term = search.trim();
+      if (!term) {
         setVideos([]);
         setLoading(false);
         return;
       }
 
       setLoading(true);
-      
-      let query = supabase.from("video_search_view").select("*");
 
-      // Фильтр по поиску
-      if (search) {
-        query = query.or(`title.ilike.%${search}%,author_username.ilike.%${search}%,search_genres_string.ilike.%${search}%`);
-      }
+      // Значение в кавычках + экранирование LIKE: запятые, скобки и % в запросе ничего не ломают
+      const pattern = quoteFilterValue(`%${escapeLike(term)}%`);
+      const { data, error } = await supabase
+        .from("video_search_view")
+        .select("*")
+        .or(`title.ilike.${pattern},author_username.ilike.${pattern},search_genres_string.ilike.${pattern}`)
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      // Пока шёл запрос, пользователь мог ввести новый — старый ответ игнорируем
+      if (isCancelled) return;
 
       if (error) {
         console.error(error);
@@ -116,6 +124,9 @@ export default function SearchResults() {
     };
 
     fetchResults();
+    return () => {
+      isCancelled = true;
+    };
   }, [search]);
 
   if (loading) return <p style={{ textAlign: "center", marginTop: 50 }}>Поиск...</p>;

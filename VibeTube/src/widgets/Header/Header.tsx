@@ -18,7 +18,8 @@ export default function Header({
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  let closeTimeout: any;
+  // useRef, а не let: обычная переменная сбрасывается при каждом рендере, и таймер нельзя отменить
+  const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentGenreId = searchParams.get("genre");
   const navigate = useNavigate();
@@ -93,15 +94,19 @@ export default function Header({
   };
 
   const handleMouseEnter = () => {
-    clearTimeout(closeTimeout); 
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
     setIsMenuOpen(true);
   };
-  
+
   const handleMouseLeave = () => {
-    closeTimeout = setTimeout(() => {
+    closeTimeout.current = setTimeout(() => {
       setIsMenuOpen(false);
     }, 200);
   };
+
+  useEffect(() => () => {
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
+  }, []);
 
   return (
     <div className={`header-wrapper ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>

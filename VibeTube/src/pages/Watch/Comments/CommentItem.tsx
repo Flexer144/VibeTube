@@ -3,6 +3,7 @@ import { supabase } from "../../../shared/lib/supabase";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import CommentForm from "./CommentForm";
 import { timeAgo } from "../../../shared/utils/timeAgo";
+import { pluralize } from "../../../shared/lib/pluralize";
 import { ThumbsUp, ThumbsDown, ChevronDown, ChevronUp } from "lucide-react";
 import '../StyleWatch/CommentStyle.css';
 
@@ -154,7 +155,7 @@ export default function CommentItem({
               onClick={() => setShowReplies(!showReplies)}
             >
               {showReplies ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              <span>{replies.length} ответ{replies.length > 1 ? 'а/ов' : ''}</span>
+              <span>{replies.length} {pluralize(replies.length, ['ответ', 'ответа', 'ответов'])}</span>
             </button>
           </div>
         )}

@@ -16,7 +16,7 @@ import SearchResults from "../pages/SearchResult/SearchResult";
 const Protected = ({ children }: { children: ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return user ? children : <Navigate to="/login" />;
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 const AdminRoute = ({ children }: { children: ReactNode }) => {

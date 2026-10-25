@@ -40,34 +40,31 @@ export default function VideoInfo({
     };
 
     checkSubscription();
-  }, [user, channelId, isSubscribed]); // Добавил зависимость, чтобы стейт был актуален
+  }, [user, channelId]);
 
-  // Твоя логика переключения подписки
+  // Возвращает true при успехе — от этого зависит анимация кнопки
   const handleToggleSubscribe = async () => {
-    if (!user) return alert("Войдите в аккаунт");
-    
-    if (isSubscribed) {
-      const { error } = await supabase
-        .from("subscriptions")
-        .delete()
-        .eq("channel_id", channelId)
-        .eq("subscriber_id", user.id);
-        
-      if (!error) {
-        setIsSubscribed(false);
-        onSubscriptionChange(); // Уведомляем родителя об изменении счетчика
-      }
-    } else {
-      const { error } = await supabase.from("subscriptions").insert({ 
-        channel_id: channelId, 
-        subscriber_id: user.id 
-      });
-      
-      if (!error) {
-        setIsSubscribed(true);
-        onSubscriptionChange(); // Уведомляем родителя об изменении счетчика
-      }
+    if (!user) return false;
+
+    const { error } = isSubscribed
+      ? await supabase
+          .from("subscriptions")
+          .delete()
+          .eq("channel_id", channelId)
+          .eq("subscriber_id", user.id)
+      : await supabase.from("subscriptions").insert({
+          channel_id: channelId,
+          subscriber_id: user.id
+        });
+
+    if (error) {
+      console.error("Ошибка подписки:", error);
+      return false;
     }
+
+    setIsSubscribed(!isSubscribed);
+    onSubscriptionChange(); // Уведомляем родителя об изменении счетчика
+    return true;
   };
 
   // Парсинг текста (оставляем как был)
@@ -91,7 +88,7 @@ export default function VideoInfo({
           <span key={index} className="desc-mention" onClick={(e) => {
             e.stopPropagation();
             // Здесь можно перенаправлять на поиск по юзернейму, если нужно
-            navigate(`/search?q=${username}`); 
+            navigate(`/search?q=${encodeURIComponent(username)}`);
           }}>
             {part}
           </span>

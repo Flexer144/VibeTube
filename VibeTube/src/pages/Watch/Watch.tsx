@@ -5,7 +5,6 @@ import { useAuth } from "../../app/providers/AuthProvider";
 
 import VideoPlayer from "./VideoPlayer";
 import VideoInfo from "./VideoInfo";
-import VideoActions from "./VideoActions";
 import CommentsList from "./Comments/CommentsList";
 import CommentForm from "./Comments/CommentForm";
 import { timeAgo } from "../../shared/utils/timeAgo";
@@ -110,6 +109,7 @@ export default function Watch() {
         `)
         .neq("id", id)
         .order("created_at", { ascending: false })
+        .limit(20);
 
       if (!error && data) {
         setRecommended(data);
@@ -168,9 +168,11 @@ export default function Watch() {
       <div className="watch-main-column">
         {/* Обертка плеера, чтобы на мобилках убирать отступы */}
         <div className="watch-player-wrapper">
-          <VideoPlayer 
-            url={video.video_url} 
-            thumbnailUrl={video.thumbnail_url} 
+          <VideoPlayer
+            key={video.id}
+            url={video.video_url}
+            thumbnailUrl={video.thumbnail_url}
+            onAutoplayNext={recommended.length > 0 ? () => navigate(`/video/${recommended[0].id}`) : undefined}
           />
         </div>
 
@@ -230,7 +232,7 @@ export default function Watch() {
                       {video.profiles?.username}
                     </div>
                     <div className="recommended-stats">
-                      {video.views} {pluralize(video.views, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
+                      {video.views ?? 0} {pluralize(video.views ?? 0, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
                     </div>
                   </div>
                 </div>

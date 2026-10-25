@@ -3,7 +3,8 @@ import { supabase } from "../../shared/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import '../../pages/Upload/Style/pageUpload.css';
 import GenreSelector from "./ComponentsUpload/GenreSelector";
-import Portal from "../../shared/ui/Portal"; 
+import Portal from "../../shared/ui/Portal";
+import { invalidateHomeFeed } from "../Home/homeFeedCache";
 
 import { 
   ChevronRight, 
@@ -65,6 +66,7 @@ export default function Upload() {
 
   // Лимит размера видео (50 МБ)
   const MAX_VIDEO_SIZE_MB = 50;
+  const MAX_THUMBNAIL_SIZE_MB = 5;
 
   // --- Загрузка жанров ---
   useEffect(() => {
@@ -96,6 +98,19 @@ export default function Upload() {
       setVideoDuration(formatDuration(video.duration));
     };
     video.src = URL.createObjectURL(file);
+  };
+
+  const handleThumbnailChange = (file: File | null) => {
+    if (!file) return;
+
+    // Лимит совпадает с лимитом бакета thumbnails в Supabase
+    if (file.size > MAX_THUMBNAIL_SIZE_MB * 1024 * 1024) {
+      triggerToast(`Обложка слишком большая (${(file.size / (1024 * 1024)).toFixed(1)} МБ). Лимит — ${MAX_THUMBNAIL_SIZE_MB} МБ.`, 'error');
+      if (thumbInputRef.current) thumbInputRef.current.value = '';
+      return;
+    }
+
+    setThumbnailFile(file);
   };
 
   // --- Улучшенная функция для запуска уведомления ---
@@ -209,16 +224,22 @@ export default function Upload() {
       if (insertError) throw insertError;
 
       if (selectedGenres.length > 0) {
-        await supabase.from("video_genres").insert(
+        const { error: genresError } = await supabase.from("video_genres").insert(
           selectedGenres.map((genreId) => ({
             video_id: insertedVideo.id,
             genre_id: genreId,
           }))
         );
+        // Видео уже опубликовано — не роняем загрузку, но сообщаем, что жанры не сохранились
+        if (genresError) {
+          console.error("Не удалось сохранить жанры:", genresError);
+          triggerToast("Видео загружено, но жанры не сохранились", 'warning');
+        }
       }
 
       setProgress(100);
-      
+      invalidateHomeFeed(); // чтобы новое видео сразу появилось на главной
+
       setTimeout(() => {
         setUploadSuccess(true);
         triggerToast("Видео загружено успешно!", "success");
@@ -279,7 +300,7 @@ export default function Upload() {
                 accept="image/*"
                 hidden
                 ref={thumbInputRef}
-                onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                onChange={(e) => handleThumbnailChange(e.target.files?.[0] || null)}
               />
               {thumbnailFile ? (
                 <div className="file-preview">

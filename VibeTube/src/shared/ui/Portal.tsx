@@ -1,5 +1,5 @@
 // Portal.tsx
-import { useEffect, useState, ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import ReactDOM from "react-dom";
 
 interface PortalProps {

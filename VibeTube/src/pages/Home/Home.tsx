@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import VideoCard from "../../components/VideoCard/VideoCard";
 import HomeSkeleton from "../../shared/Skeletons/HomeSkeleton.tsx";
+import { getHomeFeedCache, setHomeFeedCache } from "./homeFeedCache";
 import '../../styles/HomeStyle.css';
 
-let globalCachedVideos: any[] | null = null;
-let globalCacheKey: string = "";
-
-const shuffleArray = (array: any[]) => {
+const shuffleArray = <T,>(array: T[]) => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -20,97 +18,106 @@ const shuffleArray = (array: any[]) => {
 
 export default function Home() {
   const { user, loading: isAuthLoading } = useAuth();
+  const userId = user?.id;
   const [videos, setVideos] = useState<any[]>([]);
-
   const [isVideoLoading, setIsVideoLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   const [searchParams] = useSearchParams();
-  const search = searchParams.get("q") || "";
   const genreId = searchParams.get("genre") || "all";
 
-  const fetchVideos = async () => {
-    const currentKey = `${search}_${genreId}`;
+  useEffect(() => {
+    if (isAuthLoading) return;
+    let isCancelled = false;
+    const cacheKey = `${userId ?? "guest"}_${genreId}`;
 
-    setIsVideoLoading(true);
+    const fetchVideos = async () => {
+      // Кэш сохраняет порядок перемешанной ленты при возврате «Назад»
+      const cached = getHomeFeedCache(cacheKey);
+      if (cached) {
+        setVideos(cached);
+        setIsVideoLoading(false);
+        return;
+      }
 
-    if (globalCachedVideos && globalCacheKey === currentKey) {
-      setVideos(globalCachedVideos);
-      setIsVideoLoading(false);
-      return; 
-    }
+      setIsVideoLoading(true);
+      setHasError(false);
 
-    let subbedChannelIds: string[] = [];
-    if (user) {
-      const { data: subs } = await supabase
-        .from("subscriptions") 
-        .select("channel_id")  
-        .eq("subscriber_id", user.id);
-      if (subs) subbedChannelIds = subs.map(sub => sub.channel_id);
-    }
+      let query = supabase.from("video_search_view").select("*").order("created_at", { ascending: false }).limit(60);
+      if (genreId !== "all") {
+        query = query.contains("genre_ids", [genreId]);
+      }
 
-    let query = supabase.from("video_search_view").select("*");
-    
-    if (search) {
-      query = query.textSearch("fts_column", search, {
-        config: "russian",
-        type: "plain",
-      });
-    }
-    if (genreId !== "all") {
-      query = query.contains("genre_ids", [genreId]); 
-    }
+      const [subsRes, videosRes] = await Promise.all([
+        userId
+          ? supabase.from("subscriptions").select("channel_id").eq("subscriber_id", userId)
+          : Promise.resolve({ data: [] as { channel_id: string }[] }),
+        query,
+      ]);
+      if (isCancelled) return;
 
-    const { data, error } = await query;
+      if (videosRes.error) {
+        console.error("Fetch Error:", videosRes.error);
+        setVideos([]);
+        setHasError(true);
+        setIsVideoLoading(false);
+        return;
+      }
 
-    if (error) {
-      console.error("Fetch Error:", error);
-      setVideos([]);
-    } else if (data) {
-      const formattedData = data.map(v => ({
+      const subbedChannelIds = new Set((subsRes.data || []).map((sub) => sub.channel_id));
+      const formattedData = (videosRes.data || []).map(v => ({
         ...v,
         profiles: { username: v.author_username, avatar_url: v.author_avatar },
-        video_genres: v.genre_names?.map((name: string) => ({ genres: { name: name } })) || []
+        video_genres: v.genre_names?.map((name: string) => ({ genres: { name } })) || []
       }));
 
-      const subbedVideos = formattedData.filter(v => subbedChannelIds.includes(v.author_id));
-      const otherVideos = formattedData.filter(v => !subbedChannelIds.includes(v.author_id));
+      // Сначала видео с каналов, на которые пользователь подписан
+      const finalVideos = [
+        ...shuffleArray(formattedData.filter(v => subbedChannelIds.has(v.author_id))),
+        ...shuffleArray(formattedData.filter(v => !subbedChannelIds.has(v.author_id))),
+      ];
 
-      const shuffledSubbed = shuffleArray(subbedVideos);
-      const shuffledOthers = shuffleArray(otherVideos);
-      const finalVideos = [...shuffledSubbed, ...shuffledOthers];
-
-      globalCachedVideos = finalVideos;
-      globalCacheKey = currentKey;
-
+      setHomeFeedCache(cacheKey, finalVideos);
       setVideos(finalVideos);
-    }
+      setIsVideoLoading(false);
+    };
 
-    setIsVideoLoading(false);
-  };
-
-  useEffect(() => {
-    if (!isAuthLoading) {
-      fetchVideos();
-    }
-  }, [search, genreId, isAuthLoading, user]);
-
-  const gridKey = `${search}_${genreId}`;
+    fetchVideos();
+    return () => {
+      isCancelled = true;
+    };
+  }, [genreId, isAuthLoading, userId]);
 
   const isLoading = isAuthLoading || isVideoLoading;
 
-  if (!user && !isAuthLoading) return <p>Не авторизован</p>;
+  if (!isLoading && videos.length === 0) {
+    return (
+      <div className="home-page">
+        <div className="home-empty">
+          <h3>{hasError ? "Не удалось загрузить видео" : "Здесь пока пусто"}</h3>
+          <p>
+            {hasError
+              ? "Проверьте соединение и обновите страницу."
+              : genreId !== "all"
+                ? "В этом жанре ещё нет видео — выберите другой."
+                : "Загрузите первое видео на VibeTube!"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="home-page">
-      <div className="video-grid" key={gridKey}>
-        {isLoading 
-          ? 
+      <div className="video-grid" key={genreId}>
+        {isLoading
+          ?
             Array.from({ length: 6 }).map((_, index) => (
               <div className="video-card" key={`skeleton-${index}`}>
                 <HomeSkeleton />
               </div>
             ))
-          : 
+          :
             videos.map((video) => (
               <VideoCard key={video.id} video={video}/>
             ))

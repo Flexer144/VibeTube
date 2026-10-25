@@ -97,7 +97,7 @@ export default function VideoCard({ video }: VideoCardProps) {
                 {username}
               </span>
               <span>
-                {video.views || 0} {pluralize(video.views, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
+                {video.views || 0} {pluralize(video.views || 0, ['просмотр', 'просмотра', 'просмотров'])} • {timeAgo(video.created_at)}
               </span>
             </div>
 

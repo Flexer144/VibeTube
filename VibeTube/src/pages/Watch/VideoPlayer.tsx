@@ -5,7 +5,20 @@ import "../../pages/Watch/StyleWatch/VideoPlayerStyle.css";
 interface Props {
   url: string;
   thumbnailUrl?: string;
+  /** Вызывается по окончании видео, если включено автовоспроизведение */
+  onAutoplayNext?: () => void;
 }
+
+const AUTOPLAY_KEY = "vibetube_autoplay";
+const DEFAULT_VOLUME = 0.3;
+
+const readAutoplay = () => {
+  try {
+    return localStorage.getItem(AUTOPLAY_KEY) !== "false";
+  } catch {
+    return true;
+  }
+};
 
 const formatTime = (timeInSeconds: number): string => {
   if (!isFinite(timeInSeconds) || isNaN(timeInSeconds)) return "0:00";
@@ -14,7 +27,7 @@ const formatTime = (timeInSeconds: number): string => {
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 };
 
-export default function VideoPlayer({ url, thumbnailUrl }: Props) {
+export default function VideoPlayer({ url, thumbnailUrl, onAutoplayNext }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
 
@@ -24,10 +37,10 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [volume, setVolume] = useState(0.52);
+  const [volume, setVolume] = useState(DEFAULT_VOLUME);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [autoplay, setAutoplay] = useState(true);
+  const [autoplay, setAutoplay] = useState(readAutoplay);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   
   // --- UI Состояния ---
@@ -50,7 +63,8 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
     if (!videoRef.current) return;
     clearTimeout(centerTimeout.current);
     if (videoRef.current.paused) {
-      videoRef.current.play();
+      // play() возвращает промис и может быть отклонён политикой автовоспроизведения
+      videoRef.current.play().catch(() => {});
       setShowCenterIcon("play");
     } else {
       videoRef.current.pause();
@@ -97,11 +111,17 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
   };
 
   const toggleFullscreen = useCallback(() => {
-    if (!playerRef.current) return;
-    if (!document.fullscreenElement) {
-      playerRef.current.requestFullscreen();
+    const player = playerRef.current;
+    if (!player) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else if (player.requestFullscreen) {
+      player.requestFullscreen().catch(() => {});
     } else {
-      document.exitFullscreen();
+      // iOS Safari не умеет разворачивать div — только сам <video>
+      const video = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+      video?.webkitEnterFullscreen?.();
     }
   }, []);
 
@@ -113,12 +133,33 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
     }
   }, [isPlaying]);
 
+  const toggleAutoplay = () => {
+    setAutoplay((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(AUTOPLAY_KEY, String(next));
+      } catch {
+        // localStorage может быть недоступен (приватный режим) — просто не запоминаем
+      }
+      return next;
+    });
+  };
+
+  // Актуальные значения для слушателей, которые вешаются один раз
+  const autoplayRef = useRef(autoplay);
+  const onAutoplayNextRef = useRef(onAutoplayNext);
+  useEffect(() => {
+    autoplayRef.current = autoplay;
+    onAutoplayNextRef.current = onAutoplayNext;
+  }, [autoplay, onAutoplayNext]);
+
   // --- Эффекты ---
+  // Слушатели самого <video> вешаются один раз на монтирование
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    video.volume = 0.30; 
+    video.volume = DEFAULT_VOLUME;
 
     const onTimeUpdate = () => {
       setCurrentTime(video.currentTime);
@@ -136,45 +177,80 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
     const onWaiting = () => setIsBuffering(true);
     const onPlaying = () => setIsBuffering(false);
     const onCanPlay = () => setIsBuffering(false);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onVolumeChange = () => {
+      setVolume(video.volume);
+      setIsMuted(video.muted);
+    };
+    const onEnded = () => {
+      if (autoplayRef.current) onAutoplayNextRef.current?.();
+    };
 
     video.addEventListener("timeupdate", onTimeUpdate);
-    video.addEventListener("play", () => setIsPlaying(true));
-    video.addEventListener("pause", () => setIsPlaying(false));
-    video.addEventListener("volumechange", () => {
-        setVolume(video.volume);
-        setIsMuted(video.muted);
-    });
-    
+    video.addEventListener("play", onPlay);
+    video.addEventListener("pause", onPause);
+    video.addEventListener("volumechange", onVolumeChange);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
     video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("ended", onEnded);
 
+    return () => {
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("play", onPlay);
+      video.removeEventListener("pause", onPause);
+      video.removeEventListener("volumechange", onVolumeChange);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("ended", onEnded);
+    };
+  }, []);
+
+  // Состояние полноэкранного режима берём из браузера: так оно верно и при выходе по Esc
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === playerRef.current);
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  // Горячие клавиши. e.code не зависит от раскладки, поэтому F и M работают и на русской
+  useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName || "")) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const video = videoRef.current;
+      if (!video) return;
       resetIdleTimer();
-      
-      switch(e.key.toLowerCase()) {
-        case " ": e.preventDefault(); togglePlay(); break;
-        case "f": e.preventDefault(); toggleFullscreen(); break;
-        case "а": e.preventDefault(); toggleFullscreen(); break;
-        case "arrowup": e.preventDefault(); handleVolumeChange(video.volume + 0.05); break;
-        case "arrowdown": e.preventDefault(); handleVolumeChange(video.volume - 0.05); break;
-        case "arrowright": e.preventDefault(); seekBy(5); break;
-        case "arrowleft": e.preventDefault(); seekBy(-5); break;
-        case "m": setIsMuted(prev => !prev); video.muted = !video.muted; break;
-        case "ь": setIsMuted(prev => !prev); video.muted = !video.muted; break;
+
+      switch (e.code) {
+        case "Space":
+        case "KeyK": e.preventDefault(); togglePlay(); break;
+        case "KeyF": e.preventDefault(); toggleFullscreen(); break;
+        case "KeyM": e.preventDefault(); video.muted = !video.muted; break;
+        case "ArrowUp": e.preventDefault(); handleVolumeChange(video.volume + 0.05); break;
+        case "ArrowDown": e.preventDefault(); handleVolumeChange(video.volume - 0.05); break;
+        case "ArrowRight": e.preventDefault(); seekBy(5); break;
+        case "ArrowLeft": e.preventDefault(); seekBy(-5); break;
       }
     };
 
     window.addEventListener("keydown", handleKey);
-    return () => {
-      video.removeEventListener("timeupdate", onTimeUpdate);
-      video.removeEventListener("waiting", onWaiting);
-      video.removeEventListener("playing", onPlaying);
-      video.removeEventListener("canplay", onCanPlay);
-      window.removeEventListener("keydown", handleKey);
-    };
+    return () => window.removeEventListener("keydown", handleKey);
   }, [togglePlay, toggleFullscreen, handleVolumeChange, seekBy, resetIdleTimer]);
+
+  // Чистим таймеры при уходе со страницы
+  useEffect(() => () => {
+    clearTimeout(volumeTimeout.current);
+    clearTimeout(seekTimeout.current);
+    clearTimeout(centerTimeout.current);
+    clearTimeout(idleTimeout.current);
+  }, []);
 
   return (
     <div 
@@ -244,12 +320,26 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
 
         <div className="yt-controls-bottom">
           <div className="yt-controls-left">
-            <button className="yt-control-pill" onClick={togglePlay}>
+            <button className="yt-control-pill" onClick={togglePlay} aria-label={isPlaying ? "Пауза (K)" : "Смотреть (K)"} title={isPlaying ? "Пауза (K)" : "Смотреть (K)"}>
               {isPlaying ? <Pause size={20} fill="white"/> : <Play size={20} fill="white"/>}
             </button>
 
             <div className="yt-volume-block yt-control-pill">
-              <button onClick={() => { videoRef.current!.muted = !isMuted; }}>
+              <button
+                aria-label={isMuted || volume === 0 ? "Включить звук (M)" : "Отключить звук (M)"}
+                title={isMuted || volume === 0 ? "Включить звук (M)" : "Отключить звук (M)"}
+                onClick={() => {
+                  const video = videoRef.current;
+                  if (!video) return;
+                  // Если звук «выключен» ползунком в ноль — при включении возвращаем громкость по умолчанию
+                  if (video.muted || video.volume === 0) {
+                    if (video.volume === 0) video.volume = DEFAULT_VOLUME;
+                    video.muted = false;
+                  } else {
+                    video.muted = true;
+                  }
+                }}
+              >
                 {isMuted || volume === 0 ? <VolumeX size={20}/> : <Volume2 size={20}/>}
               </button>
               <input 
@@ -267,12 +357,19 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
           </div>
 
           <div className="yt-controls-right">
-            <button className="yt-control-pill" onClick={() => setAutoplay(!autoplay)}>
+            <button
+              className="yt-control-pill"
+              onClick={toggleAutoplay}
+              aria-pressed={autoplay}
+              aria-label="Автовоспроизведение следующего видео"
+              title={autoplay ? "Автовоспроизведение включено" : "Автовоспроизведение выключено"}
+            >
               {autoplay ? <ToggleRight color="#6365F1" /> : <ToggleLeft color="#888" />}
             </button>
 
             <div className="yt-settings-container">
-              <button className="yt-control-pill" onClick={() => setShowSettings(!showSettings)}>
+              <button className="yt-control-pill" onClick={() => setShowSettings(!showSettings)} aria-label="Настройки" title="Настройки">
+
                 <Settings size={20} className={showSettings ? "rotating" : ""} />
               </button>
               {showSettings && (
@@ -291,7 +388,7 @@ export default function VideoPlayer({ url, thumbnailUrl }: Props) {
               )}
             </div>
 
-            <button className="yt-control-pill" onClick={toggleFullscreen}>
+            <button className="yt-control-pill" onClick={toggleFullscreen} aria-label={isFullscreen ? "Выйти из полноэкранного режима (F)" : "Во весь экран (F)"} title={isFullscreen ? "Выйти из полноэкранного режима (F)" : "Во весь экран (F)"}>
               {isFullscreen ? <Minimize size={20}/> : <Maximize size={20}/>}
             </button>
           </div>

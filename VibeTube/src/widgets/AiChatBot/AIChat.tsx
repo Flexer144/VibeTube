@@ -2,7 +2,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../shared/lib/supabase.ts'; 
 import { Bot, X, Send, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
+import { FunctionsHttpError } from '@supabase/supabase-js';
+import { Link } from 'react-router-dom';
+
+// Внутренние ссылки (/video/ID) открываем через роутер — без перезагрузки страницы,
+// внешние — в новой вкладке
+const markdownComponents: Components = {
+  a: ({ href = '', children }) =>
+    href.startsWith('/') ? (
+      <Link to={href}>{children}</Link>
+    ) : (
+      <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+    ),
+};
 import './AIChatStyle.css';
 
 export default function AIChat() {
@@ -34,7 +47,8 @@ export default function AIChat() {
 
     const initShader = async () => {
       try {
-        const { liquidMetalFragmentShader, ShaderMount } = await import('https://esm.sh/@paper-design/shaders');
+        // Динамический импорт: шейдеры попадают в отдельный чанк и не тормозят первую загрузку
+        const { liquidMetalFragmentShader, ShaderMount } = await import('@paper-design/shaders');
         
         if (liquidMetalRef.current && !isOpen) {
           shaderInstance = new ShaderMount(
@@ -81,9 +95,15 @@ export default function AIChat() {
     setInput('');
     setIsLoading(true);
 
+    // История для контекста: последние сообщения без приветствия бота
+    const history = messages.slice(1).slice(-10).map((m) => ({
+      role: m.role === 'bot' ? 'assistant' : 'user',
+      content: m.text,
+    }));
+
     try {
       const { data, error } = await supabase.functions.invoke('vibetube-ai', {
-        body: { prompt: userMessage }
+        body: { prompt: userMessage, history }
       });
 
       if (error) throw error;
@@ -91,7 +111,13 @@ export default function AIChat() {
       setMessages(prev => [...prev, { role: 'bot', text: data.text }]);
     } catch (error) {
       console.error('Ошибка ИИ:', error);
-      setMessages(prev => [...prev, { role: 'bot', text: 'Упс, связь с нейросетью прервалась. Попробуй еще раз!' }]);
+      // Функция возвращает понятный текст ошибки (лимит, авторизация) в теле ответа
+      let text = 'Упс, связь с нейросетью прервалась. Попробуй еще раз!';
+      if (error instanceof FunctionsHttpError) {
+        const body = await error.context.json().catch(() => null);
+        if (typeof body?.error === 'string') text = body.error;
+      }
+      setMessages(prev => [...prev, { role: 'bot', text }]);
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +153,7 @@ export default function AIChat() {
             <div key={idx} className={`ai-message ${msg.role}`}>
               {msg.role === 'bot' ? (
                 <div className="markdown-content">
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  <ReactMarkdown components={markdownComponents}>{msg.text}</ReactMarkdown>
                 </div>
               ) : (
                 msg.text

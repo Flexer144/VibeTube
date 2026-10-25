@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../shared/lib/supabase";
 import { Search, Trash2, User, AlertCircle } from "lucide-react";
+import { removeVideoFiles } from "../../shared/lib/storage";
+import { escapeLike } from "../../shared/lib/escapeLike";
+import { invalidateHomeFeed } from "../Home/homeFeedCache";
 import "./AdminPanel.css";
 
 type Profile = {
@@ -13,6 +16,7 @@ type Video = {
   id: string;
   title: string;
   thumbnail_url: string;
+  video_url: string;
   author_id: string;
 };
 
@@ -31,7 +35,7 @@ export default function AdminPanel() {
       let query = supabase.from("profiles").select("id, username, avatar_url");
       
       if (searchQuery) {
-        query = query.ilike("username", `%${searchQuery}%`);
+        query = query.ilike("username", `%${escapeLike(searchQuery.trim())}%`);
       }
 
       const { data } = await query.limit(20);
@@ -57,7 +61,7 @@ export default function AdminPanel() {
       setLoadingVideos(true);
       const { data } = await supabase
         .from("videos")
-        .select("id, title, thumbnail_url, author_id")
+        .select("id, title, thumbnail_url, video_url, author_id")
         .eq("author_id", selectedUser.id)
         .order("created_at", { ascending: false });
 
@@ -72,17 +76,23 @@ export default function AdminPanel() {
   const handleDeleteVideo = async (video: Video) => {
     if (!window.confirm(`Вы уверены, что хотите удалить ролик "${video.title}"? Это действие необратимо.`)) return;
 
-    // 1. Удаляем видео (политика RLS для админа уже настроена)
-    const { error: deleteError } = await supabase
+    // 1. Удаляем видео (политика RLS для админа уже настроена).
+    // .select() — чтобы убедиться, что строка реально удалена, а не отфильтрована RLS
+    const { data: deletedRows, error: deleteError } = await supabase
       .from("videos")
       .delete()
-      .eq("id", video.id);
+      .eq("id", video.id)
+      .select("id");
 
-    if (deleteError) {
+    if (deleteError || !deletedRows?.length) {
       alert("Ошибка при удалении видео");
-      console.error(deleteError);
+      console.error(deleteError ?? "Строка не удалена — проверьте права администратора");
       return;
     }
+
+    // Файлы удаляем после записи в БД, чтобы не остаться с «битым» видео
+    await removeVideoFiles({ video_url: video.video_url, thumbnail_url: video.thumbnail_url });
+    invalidateHomeFeed();
 
     // 2. Отправляем уведомление автору
     const { error: notifyError } = await supabase

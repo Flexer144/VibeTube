@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../../shared/lib/supabase";
 
 type Profile = {
@@ -7,7 +8,7 @@ type Profile = {
 };
 
 type AuthContextType = {
-  user: any;
+  user: User | null;
   profile: Profile | null;
   loading: boolean;
 };
@@ -18,44 +19,59 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+const fetchProfile = async (userId: string) => {
+  const { data } = await supabase
+    .from("profiles")
+    .select("username, role")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return data as Profile | null;
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("username, role")
-      .eq("id", userId)
-      .single();
-
-    setProfile(data);
-  };
-
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUser(data.user);
-        loadProfile(data.user.id);
+    let isActive = true;
+    let requestId = 0;
+    let currentUserId: string | null | undefined;
+
+    // onAuthStateChange сразу присылает INITIAL_SESSION, поэтому отдельный getUser не нужен.
+    // loading держим до загрузки профиля — иначе AdminRoute
+    // на мгновение видит profile = null и показывает «нет прав».
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user ?? null;
+      const nextUserId = currentUser?.id ?? null;
+
+      // Обновление токена и т.п. не меняет пользователя — профиль перезапрашивать незачем
+      if (nextUserId === currentUserId) return;
+      currentUserId = nextUserId;
+
+      setUser(currentUser);
+      const thisRequest = ++requestId;
+
+      if (!currentUser) {
+        setProfile(null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      setLoading(true);
+      // Запросы к Supabase внутри колбэка нужно откладывать, иначе возможен дедлок auth-клиента
+      setTimeout(async () => {
+        const nextProfile = await fetchProfile(currentUser.id);
+        if (!isActive || thisRequest !== requestId) return;
+
+        setProfile(nextProfile);
+        setLoading(false);
+      }, 0);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (currentUser) {
-          loadProfile(currentUser.id);
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
     return () => {
+      isActive = false;
       listener.subscription.unsubscribe();
     };
   }, []);

@@ -78,20 +78,31 @@ export default function Login() {
   const isEmailValid = useMemo(() => validateEmail(email), [email]);
   const isFormValid = isEmailValid && password.length >= 8;
   
-  const submit = async () => {
-    if (!isFormValid) return;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!isFormValid || isSubmitting) return;
+
+    setIsSubmitting(true);
     const { error } = await loginUser(email, password);
+    setIsSubmitting(false);
 
-    setPassword("");
-    setEmailTouched(false);
-    setShowPassword(false); 
-
-    if (error?.message === 'Invalid login credentials') {
-      setErrorMessage("Неверная почта или пароль!");
+    if (error) {
+      setPassword("");
+      setShowPassword(false);
       setErrorStatus(true);
+
+      if (error.message === "Invalid login credentials") {
+        setErrorMessage("Неверная почта или пароль!");
+      } else if (error.message === "Email not confirmed") {
+        setErrorMessage("Подтвердите почту — мы отправили вам письмо");
+      } else {
+        setErrorMessage("Не удалось войти. Проверьте соединение и попробуйте ещё раз");
+      }
       return;
     }
-    
+
     setErrorMessage("Войдите в свой аккаунт");
     setErrorStatus(false);
     navigate("/");
@@ -111,7 +122,7 @@ export default function Login() {
 
       <div className="auth-overlay" />
 
-      <div className="auth-card">
+      <form className="auth-card" onSubmit={submit} noValidate>
         <h1 className="auth-title">Вход</h1>
         <p className={`auth-subtitle ${!errorStatus ? '' : 'errorAuth'}`}>{errorMessage}</p>
 
@@ -120,6 +131,7 @@ export default function Login() {
           <div className={`auth-field ${emailTouched && !isEmailValid ? "error" : ""}`}>
             <input
               type="email"
+              autoComplete="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -139,6 +151,7 @@ export default function Login() {
           <div className="auth-field">
             <input
               type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
               placeholder="Введите пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -153,18 +166,18 @@ export default function Login() {
           </div>
         </div>
 
-        <button 
-          onClick={submit} 
+        <button
+          type="submit"
           className="auth-button"
-          disabled={!isFormValid}
+          disabled={!isFormValid || isSubmitting}
         >
-          Войти
+          {isSubmitting ? "Входим..." : "Войти"}
         </button>
 
         <p className="auth-footer">
           Нет аккаунта? <Link to="/register">Зарегистрируйся!</Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }

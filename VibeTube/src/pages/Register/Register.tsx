@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../shared/lib/supabase";
+import { escapeLike } from "../../shared/lib/escapeLike";
 
 // Подключаем общий CSS, где лежат стили для фона, карточки и курсора
 import '../../styles/pageRegister.css'; 
@@ -121,10 +122,12 @@ export default function Register() {
 
     setIsCheckingUsername(true);
     
+    // Ник уникален без учёта регистра (индекс lower(username) в БД), поэтому ilike без шаблонов
     const { data, error } = await supabase
       .from("profiles")
       .select("username")
-      .eq("username", username); 
+      .ilike("username", escapeLike(username))
+      .limit(1);
 
     setIsCheckingUsername(false);
 
@@ -151,46 +154,40 @@ export default function Register() {
     checkUsernameAvailability();
   };
 
-  const submit = async () => {
-    if (!isFormValid) return;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Регистрация Auth
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!isFormValid || isSubmitting) return;
+
+    setIsSubmitting(true);
+    // Профиль создаёт триггер handle_new_user в БД — ник передаём в метаданных
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: { data: { username } },
     });
+    setIsSubmitting(false);
 
     if (error) {
-      setErrorMessage("Пользователь с такой почтой уже существует");
       setErrorStatus(true);
-      return;
-    }
-
-    const user = data.user;
-    if (!user) return;
-
-    // Создание профиля
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        username,
-      });
-
-    if (profileError) {
-      if (profileError.message.includes("duplicate key") || profileError.code === "23505") {
-         setErrorMessage("Этот никнейм уже занят!");
-         setUsernameTaken(true);
+      if (error.code === "user_already_exists" || /already registered/i.test(error.message)) {
+        setErrorMessage("Пользователь с такой почтой уже существует");
+      } else if (error.code === "weak_password") {
+        setErrorMessage("Пароль слишком простой — придумайте другой");
       } else {
-         setErrorMessage("Ошибка создания профиля");
+        setErrorMessage("Не удалось зарегистрироваться. Попробуйте ещё раз");
       }
-      setErrorStatus(true);
       return;
     }
 
-    // Авто-вход
-    await supabase.auth.signInWithPassword({ email, password });
-    
+    // Если в проекте включено подтверждение почты, сессии ещё нет
+    if (!data.session) {
+      setErrorStatus(false);
+      setErrorMessage("Почти готово! Подтвердите почту по ссылке из письма");
+      return;
+    }
+
     navigate("/");
   };
 
@@ -206,7 +203,7 @@ export default function Register() {
         <div className="bg-orb orb-3"></div>
       </div>
 
-      <div className="auth-card">
+      <form className="auth-card" onSubmit={submit} noValidate>
         <h1 className="auth-title">Регистрация</h1>
         <p className={`auth-subtitle ${!errorStatus ? '' : 'errorAuth'}`}>{errorMessage}</p>
 
@@ -215,6 +212,7 @@ export default function Register() {
           <div className={`auth-field ${usernameTouched && (!isUsernameFormatValid || usernameTaken) ? "error" : ""}`}>
             <input
               type="text"
+              autoComplete="username"
               placeholder="Имя пользователя"
               value={username}
               onChange={handleUsernameChange}
@@ -272,7 +270,7 @@ export default function Register() {
           </div>
           {passwordTouched && !isPasswordValid && (
             <span className="error-message-password">
-              8-30 символов (a-z, 0-9, _)
+              8-30 символов, латиница, цифры и спецсимволы
             </span>
           )}
         </div>
@@ -298,18 +296,18 @@ export default function Register() {
           )}
         </div>
 
-        <button 
-          onClick={submit} 
+        <button
+          type="submit"
           className="auth-button"
-          disabled={!isFormValid}
+          disabled={!isFormValid || isSubmitting}
         >
-          Зарегистрироваться
+          {isSubmitting ? "Создаём аккаунт..." : "Зарегистрироваться"}
         </button>
 
         <p className="auth-footer">
           Уже есть аккаунт? <Link to="/login">Войти</Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }
